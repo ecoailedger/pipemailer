@@ -1,1 +1,219 @@
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PipeMailer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn3.devexpress.com/jslib/23.2.5/css/dx.material.blue.dark.min.css">
+  <style>
+    :root {
+      --bg-base:#0d1117;--bg-surface:#161b22;--bg-elevated:#21262d;--bg-hover:#30363d;
+      --accent:#00d4aa;--accent-dim:#00d4aa33;--text-primary:#e6edf3;--text-secondary:#8b949e;
+      --text-muted:#484f58;--border:#30363d;--border-subtle:#21262d;--amber:#f59e0b;--red:#ef4444;
+      --green:#10b981;--blue:#3b82f6;--purple:#8b5cf6;--font-mono:'DM Mono',monospace;--font-sans:'DM Sans',sans-serif;
+      --radius-sm:4px;--radius-md:8px;--radius-lg:12px;--shadow-lg:0 8px 32px rgba(0,0,0,.4);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg-base); color: var(--text-primary); font-family: var(--font-sans); height: 100vh; overflow: hidden; }
+    .app-shell { height: 100vh; display: flex; flex-direction: column; }
+    .topbar { height: 62px; border-bottom: 1px solid var(--border); padding: 10px 16px; display: grid; grid-template-columns: 210px 1fr 190px; gap: 16px; align-items: center; background: var(--bg-surface); }
+    .logo { font-weight: 700; font-size: 20px; letter-spacing: .3px; }
+    .logo span { color: var(--accent); }
+    .top-actions { display: flex; gap: 12px; justify-content: flex-end; }
+    .content { flex: 1; min-height: 0; display: grid; grid-template-columns: 280px minmax(420px, 1fr) 420px; }
+    .panel { border-right: 1px solid var(--border-subtle); background: var(--bg-surface); min-height: 0; }
+    .panel:last-child { border-right: none; border-left: 1px solid var(--border-subtle); }
+    .section-title { margin: 18px 16px 8px; font: 500 12px var(--font-mono); color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; }
+    #folders, #pipelineStages { margin: 0 8px; }
+    .view-toggle { margin: 14px 12px 6px; display:flex; gap:8px; }
+    #emailListContainer, #kanbanView { height: calc(100% - 12px); }
+    #emailList { height: 100%; }
+    .email-item { padding: 10px 14px; border-bottom: 1px solid var(--border-subtle); cursor: pointer; }
+    .email-item:hover { background: var(--bg-hover); }
+    .email-top { display: flex; justify-content: space-between; font-size: 13px; }
+    .email-from { font-weight: 600; }
+    .email-date { color: var(--text-secondary); font-family: var(--font-mono); }
+    .email-subject { margin-top: 4px; font-weight: 500; }
+    .email-snippet { font-size: 13px; color: var(--text-secondary); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .badge { display:inline-block; background: var(--accent-dim); color: var(--accent); padding: 2px 6px; border-radius: 999px; font-size: 11px; margin-top: 6px; }
+    .unread-dot { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; display: inline-block; margin-right: 6px; }
+    #kanbanView { display:none; overflow:auto; padding: 12px; }
+    .kanban-row { display:flex; gap:12px; min-height: 100%; }
+    .kanban-col { min-width: 220px; max-width: 220px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-md); display:flex; flex-direction:column; }
+    .kanban-head { padding:10px; border-bottom:1px solid var(--border); font:500 12px var(--font-mono); color:var(--text-secondary); }
+    .kanban-body { padding:8px; min-height:120px; }
+    .deal-card { background: var(--bg-surface); border:1px solid var(--border); border-radius: var(--radius-md); padding:10px; margin-bottom:8px; cursor:grab; }
+    .deal-card:hover { border-color: var(--accent); }
+    .deal-value { color: var(--accent); font-family: var(--font-mono); font-size: 12px; margin-top: 6px; }
+    .right-header { padding: 14px; border-bottom: 1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
+    .empty-state { padding: 36px 26px; text-align:center; color: var(--text-secondary); }
+    .thread-message { border:1px solid var(--border); background:var(--bg-elevated); border-radius:var(--radius-md); padding:10px; margin-bottom:10px; }
+    #detailTabs { height: calc(100% - 58px); }
+    .dx-list, .dx-popup-content, .dx-scrollable-content { background: var(--bg-surface)!important; }
+    .dx-texteditor { background: var(--bg-elevated)!important; border-color: var(--border)!important; }
+    .dx-button-mode-contained.dx-button-success { background-color: var(--accent)!important; color: var(--bg-base)!important; }
+  </style>
+</head>
+<body>
+<div class="app-shell">
+  <div class="topbar">
+    <div class="logo">Pipe<span>Mailer</span></div>
+    <div id="searchBox"></div>
+    <div class="top-actions">
+      <div id="composeBtn"></div>
+      <div id="notifBtn"></div>
+    </div>
+  </div>
+  <div class="content">
+    <aside class="panel">
+      <div class="section-title">Navigation</div>
+      <div id="folders"></div>
+      <div class="section-title">Pipeline Stages</div>
+      <div id="pipelineStages"></div>
+      <div class="view-toggle">
+        <div id="emailViewBtn"></div>
+        <div id="pipelineViewBtn"></div>
+      </div>
+    </aside>
+    <main class="panel">
+      <div id="emailListContainer"><div id="emailList"></div></div>
+      <div id="kanbanView"></div>
+    </main>
+    <section class="panel">
+      <div class="right-header"><strong id="detailTitle">No item selected</strong><div id="linkBtn"></div></div>
+      <div id="detailTabs"></div>
+    </section>
+  </div>
+</div>
+<div id="composePopup"></div>
+<div id="notePopup"></div>
+<div id="searchPopup"></div>
+<div id="toast"></div>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn3.devexpress.com/jslib/23.2.5/js/dx.all.js"></script>
+<script>
+var mockDeals = [
+  {id:1,title:'Acme Renewal 2026',contact:'Acme Ltd',value:42000,stage:'Leads',probability:20,days:4,notes:['Initial discovery call complete']},
+  {id:2,title:'Nimbus Security Upgrade',contact:'Nimbus AG',value:75000,stage:'Qualified',probability:50,days:7,notes:['Technical scoping shared']},
+  {id:3,title:'Orbit BI Expansion',contact:'Orbit Labs',value:118000,stage:'Proposal',probability:70,days:10,notes:['Proposal sent last week']},
+  {id:4,title:'Vertex Pilot',contact:'Vertex Co',value:26000,stage:'Won',probability:100,days:2,notes:['Signed and kickoff booked']}
+];
+var mockEmails = [
+  {id:101,folder:'inbox',from:'Maya Patel',subject:'Q4 rollout timeline',snippet:'Can we align on a phased release for November?',date:'2026-02-12',isRead:false,dealId:2,body:'Hi team, can we align on a phased release for November rollout? Thanks!'},
+  {id:102,folder:'inbox',from:'Liam Chen',subject:'Contract redlines attached',snippet:'Please see legal comments, mostly payment terms.',date:'2026-02-11',isRead:true,dealId:3,body:'Please see legal comments, mostly payment terms and SLA.'},
+  {id:103,folder:'inbox',from:'Sara Gomez',subject:'Kickoff notes',snippet:'Great meeting today. Sharing notes and actions.',date:'2026-02-09',isRead:false,dealId:1,body:'Great meeting today. Sharing notes and action items for next step.'},
+  {id:104,folder:'sent',from:'You',subject:'Re: Security questionnaire',snippet:'Attached the completed responses.',date:'2026-02-08',isRead:true,dealId:2,body:'Attached the completed responses, let me know if anything missing.'}
+];
+window.AppState = {
+  currentView:'email',selectedEmailId:null,selectedDealId:null,selectedFolder:'inbox',rightPanelMode:'email',searchQuery:'',
+  emails:mockEmails,deals:mockDeals,pipelineStages:['Leads','Qualified','Proposal','Won','Lost'],
+  selectEmail:function(id){this.selectedEmailId=id; this.rightPanelMode='email'; renderRightPanel();},
+  selectDeal:function(id){this.selectedDealId=id; this.rightPanelMode='deal'; renderRightPanel();},
+  moveDealToStage:function(id,stage){ var d=this.deals.find(function(x){return x.id===id}); if(d){d.stage=stage;} },
+  linkEmailToDeal:function(emailId,dealId){ var e=this.emails.find(function(x){return x.id===emailId}); if(e){e.dealId=dealId;} },
+  addDealNote:function(dealId,note){ var d=this.deals.find(function(x){return x.id===dealId}); if(d){d.notes.unshift(note);} }
+};
+function notify(msg,type){ $('#toast').dxToast({message:msg,type:type||'success',displayTime:1800,width:320}).dxToast('instance').show(); }
+function renderEmailList(){
+  var list = AppState.emails.filter(function(e){return e.folder===AppState.selectedFolder;});
+  $('#emailList').dxList({
+    dataSource:list,focusStateEnabled:true,height:'100%',
+    noDataText:'No emails in this folder',
+    itemTemplate:function(e){
+      var deal=e.dealId?AppState.deals.find(function(d){return d.id===e.dealId}):null;
+      return '<div class="email-item"><div class="email-top"><div class="email-from">'+(e.isRead?'':'<span class="unread-dot"></span>')+e.from+'</div><div class="email-date">'+e.date+'</div></div><div class="email-subject">'+e.subject+'</div><div class="email-snippet">'+e.snippet+'</div>'+(deal?'<div class="badge">'+deal.title+'</div>':'')+'</div>';
+    },
+    onItemClick:function(ev){AppState.selectEmail(ev.itemData.id);}
+  });
+}
+function renderKanban(){
+  var $k = $('#kanbanView').empty();
+  var row = $('<div class="kanban-row"></div>').appendTo($k);
+  AppState.pipelineStages.forEach(function(stage){
+    var col = $('<div class="kanban-col"><div class="kanban-head">'+stage+'</div><div class="kanban-body" id="stage-'+stage+'"></div></div>');
+    row.append(col);
+    var deals = AppState.deals.filter(function(d){return d.stage===stage;});
+    var body = col.find('.kanban-body');
+    if(!deals.length){ body.append('<div class="empty-state">No deals</div>'); }
+    deals.forEach(function(d){
+      body.append('<div class="deal-card" data-id="'+d.id+'"><div>'+d.title+'</div><div style="font-size:12px;color:var(--text-secondary)">'+d.contact+'</div><div class="deal-value">£'+d.value.toLocaleString()+'</div></div>');
+    });
+    body.dxSortable({group:'deals',filter:'.deal-card',itemOrientation:'vertical',onAdd:function(e){
+      AppState.moveDealToStage(Number($(e.itemElement).data('id')),stage); notify('Deal moved to '+stage); renderKanban();
+    }});
+  });
+  $('.deal-card').on('click',function(){AppState.selectDeal(Number($(this).data('id')));});
+}
+function renderRightPanel(){
+  var tabs = [{title:'Thread'},{title:'Deal'},{title:'Activity'}];
+  $('#detailTabs').dxTabPanel({
+    dataSource:tabs,animationEnabled:false,swipeEnabled:false,
+    itemTitleTemplate:function(i){ return i.title; },
+    itemTemplate:function(item){
+      if(AppState.rightPanelMode==='email'){
+        var em = AppState.emails.find(function(e){return e.id===AppState.selectedEmailId;});
+        if(!em){ return '<div class="empty-state">Select an email to view details.</div>'; }
+        var deal = AppState.deals.find(function(d){return d.id===em.dealId;});
+        if(item.title==='Thread') return '<div style="padding:12px"><div class="thread-message"><strong>'+em.from+'</strong><p>'+em.body+'</p></div><div id="replyArea"></div><div id="sendReply"></div></div>';
+        if(item.title==='Deal') return deal?'<div style="padding:12px"><h3>'+deal.title+'</h3><p>'+deal.contact+'</p><p class="deal-value">£'+deal.value.toLocaleString()+'</p></div>':'<div class="empty-state">No linked deal.</div>';
+        return deal?'<div style="padding:12px">'+deal.notes.map(function(n){return '<div class="thread-message">'+n+'</div>';}).join('')+'</div>':'<div class="empty-state">No activity.</div>';
+      }
+      var dl = AppState.deals.find(function(d){return d.id===AppState.selectedDealId;});
+      if(!dl){ return '<div class="empty-state">Select a deal from Kanban.</div>'; }
+      if(item.title==='Thread') return '<div style="padding:12px">Deal: '+dl.title+'<br/>Stage: '+dl.stage+'</div>';
+      if(item.title==='Deal') return '<div style="padding:12px"><h3>'+dl.title+'</h3><p>'+dl.contact+'</p><p class="deal-value">£'+dl.value.toLocaleString()+'</p><div id="addNoteBtn"></div></div>';
+      return '<div style="padding:12px">'+dl.notes.map(function(n){return '<div class="thread-message">'+n+'</div>';}).join('')+'</div>';
+    },
+    onContentReady:function(){
+      if($('#replyArea').length){
+        $('#replyArea').dxTextArea({height:90,placeholder:'Write your reply...'});
+        $('#sendReply').dxButton({text:'Send Reply',type:'success',onClick:function(e){e.component.option('disabled',true);setTimeout(function(){notify('Reply sent');e.component.option('disabled',false);},700);}});
+      }
+      if($('#addNoteBtn').length){
+        $('#addNoteBtn').dxButton({text:'Add note',onClick:function(){$('#notePopup').dxPopup('instance').show();}});
+      }
+    }
+  });
+  var title = AppState.rightPanelMode==='email' ? (AppState.emails.find(function(e){return e.id===AppState.selectedEmailId;})||{}).subject : (AppState.deals.find(function(d){return d.id===AppState.selectedDealId;})||{}).title;
+  $('#detailTitle').text(title||'No item selected');
+}
+$(function(){
+  $('#searchBox').dxTextBox({placeholder:'Search emails and deals...',mode:'search',onValueChanged:function(e){
+    var q = (e.value||'').toLowerCase(); if(!q){return;}
+    var emails = AppState.emails.filter(function(x){return (x.subject+x.from).toLowerCase().indexOf(q)>-1;});
+    var deals = AppState.deals.filter(function(x){return x.title.toLowerCase().indexOf(q)>-1;});
+    $('#searchPopup').dxPopup({title:'Search Results',width:560,height:420,contentTemplate:function(c){
+      c.append('<div style="padding:12px"><h4>Emails</h4>'+ (emails.map(function(x){return '<div class="thread-message">'+x.subject+'</div>';}).join('')||'<div class="empty-state">No emails</div>') +'<h4>Deals</h4>'+ (deals.map(function(x){return '<div class="thread-message">'+x.title+'</div>';}).join('')||'<div class="empty-state">No deals</div>') +'</div>');
+    }}).dxPopup('instance').show();
+  }});
+  $('#composeBtn').dxButton({text:'Compose',type:'success',onClick:function(){$('#composePopup').dxPopup('instance').show();}});
+  $('#notifBtn').dxButton({icon:'bell',hint:'Notifications'});
+  $('#emailViewBtn').dxButton({text:'Email View',stylingMode:'outlined',onClick:function(){AppState.currentView='email';$('#emailListContainer').show();$('#kanbanView').hide();}});
+  $('#pipelineViewBtn').dxButton({text:'Pipeline View',stylingMode:'outlined',onClick:function(){AppState.currentView='pipeline';$('#emailListContainer').hide();$('#kanbanView').show();renderKanban();}});
+  $('#folders').dxList({dataSource:[{name:'Inbox',id:'inbox'},{name:'Sent',id:'sent'},{name:'Drafts',id:'drafts'}],height:140,itemTemplate:function(i){
+    var count = AppState.emails.filter(function(e){return e.folder===i.id;}).length; return '<div>'+i.name+' <span style="color:var(--text-secondary)">('+count+')</span></div>';},onItemClick:function(e){AppState.selectedFolder=e.itemData.id;renderEmailList();}});
+  $('#pipelineStages').dxList({dataSource:AppState.pipelineStages,height:200,itemTemplate:function(s){var c=AppState.deals.filter(function(d){return d.stage===s;}).length;return '<div>'+s+' <span style="color:var(--text-secondary)">('+c+')</span></div>';},onItemClick:function(e){AppState.currentView='pipeline';$('#emailListContainer').hide();$('#kanbanView').show();renderKanban();}});
+  $('#composePopup').dxPopup({title:'Compose Email',width:560,height:430,showCloseButton:true,contentTemplate:function(c){
+    c.append('<div id="toField"></div><div id="subField" style="margin-top:10px"></div><div id="bodyField" style="margin-top:10px"></div><div id="linkDeal" style="margin-top:10px"></div><div id="sendBtn" style="margin-top:12px"></div>');
+    $('#toField').dxTextBox({placeholder:'To'}); $('#subField').dxTextBox({placeholder:'Subject'}); $('#bodyField').dxTextArea({height:140,placeholder:'Message'});
+    $('#linkDeal').dxSelectBox({dataSource:AppState.deals,displayExpr:'title',valueExpr:'id',placeholder:'Link to deal (optional)'});
+    $('#sendBtn').dxButton({text:'Send',type:'success',onClick:function(e){e.component.option('disabled',true);setTimeout(function(){notify('Email sent');$('#composePopup').dxPopup('instance').hide();e.component.option('disabled',false);},700);}});
+  }});
+  $('#notePopup').dxPopup({title:'Add deal note',width:420,height:280,showCloseButton:true,contentTemplate:function(c){
+    c.append('<div id="noteArea"></div><div id="saveNote" style="margin-top:10px"></div>');
+    $('#noteArea').dxTextArea({height:120,placeholder:'Write note'});
+    $('#saveNote').dxButton({text:'Save note',type:'success',onClick:function(e){
+      var note = $('#noteArea').dxTextArea('instance').option('value');
+      if(AppState.selectedDealId && note){e.component.option('disabled',true);setTimeout(function(){AppState.addDealNote(AppState.selectedDealId,note);notify('Note saved');$('#notePopup').dxPopup('instance').hide();renderRightPanel();e.component.option('disabled',false);},700);}
+    }});
+  }});
+  $('#linkBtn').dxButton({text:'Link Email',stylingMode:'text',onClick:function(){ $('#composePopup').dxPopup('instance').show(); }});
+  renderEmailList();
+  renderRightPanel();
+});
+</script>
+</body>
+</html>
