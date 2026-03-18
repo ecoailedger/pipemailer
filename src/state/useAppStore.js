@@ -92,21 +92,85 @@ function reducer(state, action) {
       };
     }
     case 'saveDeal': {
-      if (!action.payload.title?.trim() || !action.payload.contact?.trim()) return state;
+      const entityType = action.payload.entityType === 'return' ? 'return' : 'deal';
       const nextId = Math.max(...state.deals.map((deal) => deal.id), 0) + 1;
+
+      if (entityType === 'deal') {
+        if (!action.payload.title?.trim() || !action.payload.contact?.trim()) return state;
+
+        const deal = {
+          id: nextId,
+          title: action.payload.title.trim(),
+          contact: action.payload.contact.trim(),
+          value: Number(action.payload.value) || 0,
+          stage: action.payload.stage || state.pipelineStages[0],
+          probability: 25,
+          days: 1,
+          notes: ['Created from React popup'],
+          entityType: 'deal'
+        };
+
+        return {
+          ...state,
+          deals: [deal, ...state.deals],
+          selectedDealId: nextId,
+          popups: { ...state.popups, deal: false },
+          view: 'pipeline'
+        };
+      }
+
+      const requiredFields = [
+        'rmaNumber',
+        'orderNumber',
+        'sku',
+        'returnReason',
+        'condition',
+        'disposition'
+      ];
+      if (requiredFields.some((field) => !String(action.payload[field] ?? '').trim())) return state;
+
+      const quantity = Number(action.payload.quantity);
+      const refundAmount = Number(action.payload.refundAmount);
+      if (!Number.isFinite(quantity) || quantity <= 0 || !Number.isFinite(refundAmount) || refundAmount < 0) {
+        return state;
+      }
+
+      const nextReturnId = Math.max(...state.returnCases.map((item) => item.id), 0) + 1;
+      const emailId = action.payload.emailId ?? state.selectedEmailId ?? null;
+      const returnCase = {
+        id: nextReturnId,
+        emailId,
+        dealId: nextId,
+        rmaNumber: action.payload.rmaNumber.trim(),
+        orderNumber: action.payload.orderNumber.trim(),
+        sku: action.payload.sku.trim(),
+        quantity,
+        returnReason: action.payload.returnReason.trim(),
+        condition: action.payload.condition.trim(),
+        disposition: action.payload.disposition.trim(),
+        refundAmount
+      };
+
       const deal = {
         id: nextId,
-        title: action.payload.title.trim(),
-        contact: action.payload.contact.trim(),
-        value: Number(action.payload.value) || 0,
+        title: `RMA ${returnCase.rmaNumber}`,
+        contact: `Order ${returnCase.orderNumber} · SKU ${returnCase.sku}`,
+        value: refundAmount,
         stage: action.payload.stage || state.pipelineStages[0],
-        probability: 25,
+        probability: 60,
         days: 1,
-        notes: ['Created from React popup']
+        notes: ['Created return case from popup'],
+        entityType: 'return',
+        returnCase
       };
+
       return {
         ...state,
         deals: [deal, ...state.deals],
+        returnCases: [returnCase, ...state.returnCases],
+        emails: emailId
+          ? state.emails.map((email) => (email.id === emailId ? { ...email, dealId: nextId, returnCaseId: nextReturnId } : email))
+          : state.emails,
         selectedDealId: nextId,
         popups: { ...state.popups, deal: false },
         view: 'pipeline'

@@ -27,6 +27,9 @@ export default function PipelineView({ deals, stages, selectedDealId, onSelectDe
                   >
                     <div>{deal.title}</div>
                     <div className="info-row">{deal.contact}</div>
+                    {deal.returnCase ? (
+                      <div className="info-row">RMA {deal.returnCase.rmaNumber} · Order {deal.returnCase.orderNumber} · SKU {deal.returnCase.sku}</div>
+                    ) : null}
                     <div className="deal-value">{formatCurrency(deal.value)}</div>
                   </article>
                 ))}

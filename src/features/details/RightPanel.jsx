@@ -8,7 +8,8 @@ const EMPTY_DRAFT = { to: '', cc: '', subject: '', body: '' };
 /**
  * @param {{
  *  selectedEmail: {id:number,from:string,to?:string,cc?:string,subject:string,snippet:string,date:string,dealId:number|null,thread?:Array<{from:string,at:string,body:string}>} | null,
- *  selectedDeal: {title:string,contact:string,stage:string,value:number,probability:number,notes?:string[]} | null,
+ *  selectedDeal: {title:string,contact:string,stage:string,value:number,probability:number,notes?:string[],returnCase?:Record<string,unknown>} | null,
+ *  selectedReturnCase: {rmaNumber:string,orderNumber:string,sku:string,quantity:number,returnReason:string,condition:string,disposition:string,refundAmount:number} | null,
  *  deals: Array<{id:number,title:string}>,
  *  draft: {to:string,cc:string,subject:string,body:string} | null,
  *  onSetDraft: (payload: {emailId:number,to:string,cc:string,subject:string,body:string,dealId:number|null}) => void,
@@ -23,6 +24,7 @@ const EMPTY_DRAFT = { to: '', cc: '', subject: '', body: '' };
 export default function RightPanel({
   selectedEmail,
   selectedDeal,
+  selectedReturnCase,
   deals,
   draft,
   onSetDraft,
@@ -163,6 +165,18 @@ export default function RightPanel({
               <div className="thread-meta-row"><span>Stage</span><span>{selectedDeal.stage}</span></div>
               <div className="thread-meta-row"><span>Value</span><span>{formatCurrency(selectedDeal.value)}</span></div>
               <div className="thread-meta-row"><span>Probability</span><span>{selectedDeal.probability}%</span></div>
+              {(selectedReturnCase || selectedDeal.returnCase) ? (
+                <>
+                  <div className="thread-meta-row"><span>RMA</span><span>{(selectedReturnCase || selectedDeal.returnCase).rmaNumber}</span></div>
+                  <div className="thread-meta-row"><span>Order</span><span>{(selectedReturnCase || selectedDeal.returnCase).orderNumber}</span></div>
+                  <div className="thread-meta-row"><span>SKU</span><span>{(selectedReturnCase || selectedDeal.returnCase).sku}</span></div>
+                  <div className="thread-meta-row"><span>Quantity</span><span>{(selectedReturnCase || selectedDeal.returnCase).quantity}</span></div>
+                  <div className="thread-meta-row"><span>Reason</span><span>{(selectedReturnCase || selectedDeal.returnCase).returnReason}</span></div>
+                  <div className="thread-meta-row"><span>Condition</span><span>{(selectedReturnCase || selectedDeal.returnCase).condition}</span></div>
+                  <div className="thread-meta-row"><span>Disposition</span><span>{(selectedReturnCase || selectedDeal.returnCase).disposition}</span></div>
+                  <div className="thread-meta-row"><span>Refund</span><span>{formatCurrency((selectedReturnCase || selectedDeal.returnCase).refundAmount)}</span></div>
+                </>
+              ) : null}
             </article>
           ) : (
             <div className="empty-state">No linked deal selected.</div>

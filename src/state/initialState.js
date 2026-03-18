@@ -42,6 +42,7 @@ export const initialState = {
   currentUserId: 'u-alex',
   teamAssigneeIds: ['u-alex', 'u-jordan', 'u-riley', 'u-taylor'],
   deals: initialDeals,
+  returnCases: [],
   pipelineStages,
   replyDrafts: {},
   popups: {
