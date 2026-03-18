@@ -5,23 +5,17 @@ import TextBox from 'devextreme-react/text-box';
  * @param {{
  *  onCompose: () => void,
  *  onToggleTheme: () => void,
- *  onShowEmailView: () => void,
- *  onShowPipelineView: () => void,
- *  themeMode: 'light'|'dark',
- *  searchQuery: string,
- *  view: 'email'|'pipeline',
- *  onSearchChange: (value: string) => void
+ *  onSearchChange: (value: string) => void,
+ *  onSwitchToEmail: () => void,
+ *  onSwitchToPipeline: () => void
  * }} props
  */
 export default function TopBar({
   onCompose,
   onToggleTheme,
-  onShowEmailView,
-  onShowPipelineView,
-  themeMode,
-  searchQuery,
-  view,
-  onSearchChange
+  onSearchChange,
+  onSwitchToEmail,
+  onSwitchToPipeline
 }) {
   return (
     <header className="topbar">
@@ -33,14 +27,13 @@ export default function TopBar({
         placeholder="Search emails"
         mode="search"
         stylingMode="filled"
-        value={searchQuery}
-        onValueChanged={(event) => onSearchChange(event.value ?? '')}
+        onValueChanged={(e) => onSearchChange(e.value ?? '')}
       />
       <div className="top-actions">
-        <Button text="Compose" type="default" stylingMode="contained" onClick={onCompose} />
-        <Button text="Email" stylingMode={view === 'email' ? 'contained' : 'outlined'} onClick={onShowEmailView} />
-        <Button text="Pipeline" stylingMode={view === 'pipeline' ? 'contained' : 'outlined'} onClick={onShowPipelineView} />
-        <Button text={themeMode === 'light' ? 'Dark' : 'Light'} icon="contrast" stylingMode="outlined" onClick={onToggleTheme} />
+        <Button text="Email View" stylingMode="outlined" onClick={onSwitchToEmail} />
+        <Button text="Pipeline View" stylingMode="outlined" onClick={onSwitchToPipeline} />
+        <Button text="Add Email" type="default" stylingMode="contained" onClick={onCompose} />
+        <Button text="Theme" icon="contrast" stylingMode="outlined" onClick={onToggleTheme} />
       </div>
     </header>
   );

@@ -63,13 +63,10 @@ export default function App() {
       <AppShell
         topbar={
           <TopBar
-            themeMode={themeMode}
-            searchQuery={searchText}
-            view={view}
             onCompose={() => {}}
             onToggleTheme={() => setThemeMode((current) => (current === 'light' ? 'dark' : 'light'))}
-            onShowEmailView={() => setView('email')}
-            onShowPipelineView={() => setView('pipeline')}
+            onSwitchToEmail={() => setView('email')}
+            onSwitchToPipeline={() => setView('pipeline')}
             onSearchChange={setSearchText}
           />
         }
