@@ -7,14 +7,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn3.devexpress.com/jslib/23.2.5/css/dx.material.blue.dark.min.css">
+  <link rel="stylesheet" href="https://cdn3.devexpress.com/jslib/23.2.5/css/dx.material.blue.light.min.css">
   <style>
     :root {
-      --bg-base:#0d1117;--bg-surface:#161b22;--bg-elevated:#21262d;--bg-hover:#30363d;
-      --accent:#00d4aa;--accent-dim:#00d4aa33;--text-primary:#e6edf3;--text-secondary:#8b949e;
-      --text-muted:#484f58;--border:#30363d;--border-subtle:#21262d;--amber:#f59e0b;--red:#ef4444;
-      --green:#10b981;--blue:#3b82f6;--purple:#8b5cf6;--font-mono:'DM Mono',monospace;--font-sans:'DM Sans',sans-serif;
-      --radius-sm:4px;--radius-md:8px;--radius-lg:12px;--shadow-lg:0 8px 32px rgba(0,0,0,.4);
+      --bg-base:#f6f8fb;--bg-surface:#ffffff;--bg-elevated:#f8fafc;--bg-hover:#eef2f7;
+      --accent:#0f766e;--accent-dim:#0f766e1f;--text-primary:#0f172a;--text-secondary:#475569;
+      --text-muted:#94a3b8;--border:#dbe3ee;--border-subtle:#e7edf5;--amber:#d97706;--red:#dc2626;
+      --green:#059669;--blue:#2563eb;--purple:#7c3aed;--font-mono:'DM Mono',monospace;--font-sans:'DM Sans',sans-serif;
+      --radius-sm:4px;--radius-md:8px;--radius-lg:12px;--shadow-lg:0 8px 24px rgba(15,23,42,.08);
     }
     * { box-sizing: border-box; }
     body { margin: 0; background: var(--bg-base); color: var(--text-primary); font-family: var(--font-sans); height: 100vh; overflow: hidden; }
@@ -29,6 +29,9 @@
     .section-title { margin: 18px 16px 8px; font: 500 12px var(--font-mono); color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; }
     #folders, #pipelineStages { margin: 0 8px; }
     .view-toggle { margin: 14px 12px 6px; display:flex; gap:8px; }
+    .action-grid { margin: 8px 12px 0; display: grid; gap: 8px; }
+    .insights-card { margin: 12px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 10px; }
+    .insight-row { display:flex; justify-content: space-between; margin-top: 6px; font-size: 13px; }
     #emailListContainer, #kanbanView { height: calc(100% - 12px); }
     #emailList { height: 100%; }
     .email-item { padding: 10px 14px; border-bottom: 1px solid var(--border-subtle); cursor: pointer; }
@@ -64,6 +67,7 @@
     <div id="searchBox"></div>
     <div class="top-actions">
       <div id="composeBtn"></div>
+      <div id="themeBtn"></div>
       <div id="notifBtn"></div>
     </div>
   </div>
@@ -76,6 +80,16 @@
       <div class="view-toggle">
         <div id="emailViewBtn"></div>
         <div id="pipelineViewBtn"></div>
+      </div>
+      <div class="section-title">Smart Actions</div>
+      <div class="action-grid">
+        <div id="markReadBtn"></div>
+        <div id="newDealBtn"></div>
+      </div>
+      <div class="insights-card">
+        <div style="font-weight:600">Today</div>
+        <div class="insight-row"><span>Unread emails</span><strong id="unreadCount">0</strong></div>
+        <div class="insight-row"><span>Open pipeline</span><strong id="openDealCount">0</strong></div>
       </div>
     </aside>
     <main class="panel">
@@ -101,6 +115,7 @@ var mockDeals = [
   {id:3,title:'Orbit BI Expansion',contact:'Orbit Labs',value:118000,stage:'Proposal',probability:70,days:10,notes:['Proposal sent last week']},
   {id:4,title:'Vertex Pilot',contact:'Vertex Co',value:26000,stage:'Won',probability:100,days:2,notes:['Signed and kickoff booked']}
 ];
+var themeMode = 'light';
 var mockEmails = [
   {id:101,folder:'inbox',from:'Maya Patel',subject:'Q4 rollout timeline',snippet:'Can we align on a phased release for November?',date:'2026-02-12',isRead:false,dealId:2,body:'Hi team, can we align on a phased release for November rollout? Thanks!'},
   {id:102,folder:'inbox',from:'Liam Chen',subject:'Contract redlines attached',snippet:'Please see legal comments, mostly payment terms.',date:'2026-02-11',isRead:true,dealId:3,body:'Please see legal comments, mostly payment terms and SLA.'},
@@ -117,6 +132,12 @@ window.AppState = {
   addDealNote:function(dealId,note){ var d=this.deals.find(function(x){return x.id===dealId}); if(d){d.notes.unshift(note);} }
 };
 function notify(msg,type){ $('#toast').dxToast({message:msg,type:type||'success',displayTime:1800,width:320}).dxToast('instance').show(); }
+function refreshInsights(){
+  var unread = AppState.emails.filter(function(e){ return !e.isRead; }).length;
+  var openDeals = AppState.deals.filter(function(d){ return d.stage !== 'Won' && d.stage !== 'Lost'; }).length;
+  $('#unreadCount').text(unread);
+  $('#openDealCount').text(openDeals);
+}
 function renderEmailList(){
   var list = AppState.emails.filter(function(e){return e.folder===AppState.selectedFolder;});
   $('#emailList').dxList({
@@ -146,6 +167,14 @@ function renderKanban(){
     }});
   });
   $('.deal-card').on('click',function(){AppState.selectDeal(Number($(this).data('id')));});
+}
+function toggleTheme(){
+  themeMode = themeMode === 'light' ? 'dark' : 'light';
+  var vars = themeMode === 'dark'
+    ? {'--bg-base':'#0d1117','--bg-surface':'#161b22','--bg-elevated':'#21262d','--bg-hover':'#30363d','--accent':'#00d4aa','--accent-dim':'#00d4aa33','--text-primary':'#e6edf3','--text-secondary':'#8b949e','--text-muted':'#484f58','--border':'#30363d','--border-subtle':'#21262d'}
+    : {'--bg-base':'#f6f8fb','--bg-surface':'#ffffff','--bg-elevated':'#f8fafc','--bg-hover':'#eef2f7','--accent':'#0f766e','--accent-dim':'#0f766e1f','--text-primary':'#0f172a','--text-secondary':'#475569','--text-muted':'#94a3b8','--border':'#dbe3ee','--border-subtle':'#e7edf5'};
+  Object.keys(vars).forEach(function(k){ document.documentElement.style.setProperty(k, vars[k]); });
+  notify('Switched to ' + themeMode + ' mode');
 }
 function renderRightPanel(){
   var tabs = [{title:'Thread'},{title:'Deal'},{title:'Activity'}];
@@ -190,12 +219,26 @@ $(function(){
     }}).dxPopup('instance').show();
   }});
   $('#composeBtn').dxButton({text:'Compose',type:'success',onClick:function(){$('#composePopup').dxPopup('instance').show();}});
+  $('#themeBtn').dxButton({text:'Theme',icon:'contrast',stylingMode:'outlined',onClick:toggleTheme});
   $('#notifBtn').dxButton({icon:'bell',hint:'Notifications'});
   $('#emailViewBtn').dxButton({text:'Email View',stylingMode:'outlined',onClick:function(){AppState.currentView='email';$('#emailListContainer').show();$('#kanbanView').hide();}});
   $('#pipelineViewBtn').dxButton({text:'Pipeline View',stylingMode:'outlined',onClick:function(){AppState.currentView='pipeline';$('#emailListContainer').hide();$('#kanbanView').show();renderKanban();}});
   $('#folders').dxList({dataSource:[{name:'Inbox',id:'inbox'},{name:'Sent',id:'sent'},{name:'Drafts',id:'drafts'}],height:140,itemTemplate:function(i){
     var count = AppState.emails.filter(function(e){return e.folder===i.id;}).length; return '<div>'+i.name+' <span style="color:var(--text-secondary)">('+count+')</span></div>';},onItemClick:function(e){AppState.selectedFolder=e.itemData.id;renderEmailList();}});
   $('#pipelineStages').dxList({dataSource:AppState.pipelineStages,height:200,itemTemplate:function(s){var c=AppState.deals.filter(function(d){return d.stage===s;}).length;return '<div>'+s+' <span style="color:var(--text-secondary)">('+c+')</span></div>';},onItemClick:function(e){AppState.currentView='pipeline';$('#emailListContainer').hide();$('#kanbanView').show();renderKanban();}});
+  $('#markReadBtn').dxButton({text:'Mark inbox read',stylingMode:'outlined',onClick:function(){
+    AppState.emails.forEach(function(e){ if(e.folder==='inbox'){ e.isRead = true; }});
+    renderEmailList();
+    refreshInsights();
+    notify('Inbox marked as read');
+  }});
+  $('#newDealBtn').dxButton({text:'Quick add deal',stylingMode:'outlined',onClick:function(){
+    var newId = Date.now();
+    AppState.deals.unshift({id:newId,title:'New Opportunity '+newId.toString().slice(-4),contact:'New Account',value:15000,stage:'Leads',probability:15,days:1,notes:['Deal created from quick action']});
+    refreshInsights();
+    renderKanban();
+    notify('New deal added');
+  }});
   $('#composePopup').dxPopup({title:'Compose Email',width:560,height:430,showCloseButton:true,contentTemplate:function(c){
     c.append('<div id="toField"></div><div id="subField" style="margin-top:10px"></div><div id="bodyField" style="margin-top:10px"></div><div id="linkDeal" style="margin-top:10px"></div><div id="sendBtn" style="margin-top:12px"></div>');
     $('#toField').dxTextBox({placeholder:'To'}); $('#subField').dxTextBox({placeholder:'Subject'}); $('#bodyField').dxTextArea({height:140,placeholder:'Message'});
@@ -213,6 +256,7 @@ $(function(){
   $('#linkBtn').dxButton({text:'Link Email',stylingMode:'text',onClick:function(){ $('#composePopup').dxPopup('instance').show(); }});
   renderEmailList();
   renderRightPanel();
+  refreshInsights();
 });
 </script>
 </body>
