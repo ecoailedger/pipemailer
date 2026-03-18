@@ -15,6 +15,8 @@
       --text-muted:#94a3b8;--border:#dbe3ee;--border-subtle:#e7edf5;--amber:#d97706;--red:#dc2626;
       --green:#059669;--blue:#2563eb;--purple:#7c3aed;--font-mono:'DM Mono',monospace;--font-sans:'DM Sans',sans-serif;
       --radius-sm:4px;--radius-md:8px;--radius-lg:12px;--shadow-lg:0 8px 24px rgba(15,23,42,.08);
+      --space-1:4px;--space-2:8px;--space-3:10px;--space-4:12px;--space-5:14px;--space-6:16px;
+      --text-xs:12px;--text-sm:13px;--text-md:14px;--font-semibold:600;
     }
     * { box-sizing: border-box; }
     body { margin: 0; background: var(--bg-base); color: var(--text-primary); font-family: var(--font-sans); height: 100vh; overflow: hidden; }
@@ -79,6 +81,28 @@
     .compose-actions { display:flex; gap:8px; margin-top:12px; position: sticky; bottom: 0; background: linear-gradient(to top, var(--bg-surface) 75%, transparent); padding-top: 8px; }
     .timeline-filter-row { position: sticky; top: 0; z-index: 2; background: var(--bg-surface); padding-bottom: 6px; }
     #emailListContainer, #detailTabs { min-height: 0; }
+    .text-secondary { color: var(--text-secondary); }
+    .text-sm { font-size: var(--text-sm); }
+    .font-semibold { font-weight: var(--font-semibold); }
+    .d-flex { display: flex; }
+    .items-center { align-items: center; }
+    .gap-1 { gap: var(--space-1); }
+    .gap-2 { gap: var(--space-2); }
+    .gap-3 { gap: var(--space-3); }
+    .mb-2 { margin-bottom: var(--space-2); }
+    .mb-3 { margin-bottom: var(--space-3); }
+    .mt-2 { margin-top: var(--space-2); }
+    .mt-3 { margin-top: var(--space-3); }
+    .mt-4 { margin-top: var(--space-4); }
+    .mt-5 { margin-top: var(--space-5); }
+    .p-2 { padding: var(--space-2); }
+    .p-3 { padding: var(--space-3); }
+    .p-4 { padding: var(--space-4); }
+    .card-body { padding: var(--space-4); }
+    .count-muted { color: var(--text-secondary); }
+    .info-row { font-size: var(--text-xs); color: var(--text-secondary); }
+    .warn-chip { color: var(--amber); border-color: var(--amber); }
+    .thread-scroll { max-height: 240px; }
 
     @media (max-width: 1440px) {
       .content { grid-template-columns: 260px minmax(380px, 1fr) 430px; }
@@ -169,7 +193,7 @@
         <div id="newDealBtn"></div>
       </div>
       <div class="insights-card">
-        <div style="font-weight:600">Today</div>
+        <div class="font-semibold">Today</div>
         <div class="insight-row"><span>Unread emails</span><strong id="unreadCount">0</strong></div>
         <div class="insight-row"><span>Open pipeline</span><strong id="openDealCount">0</strong></div>
       </div>
@@ -182,7 +206,7 @@
     <section class="panel">
       <div class="right-header">
         <strong id="detailTitle">No item selected</strong>
-        <div style="display:flex; gap:6px; align-items:center;">
+        <div class="d-flex gap-2 items-center">
           <div id="linkBtn"></div>
           <div id="quickActionsMenu"></div>
         </div>
@@ -292,6 +316,18 @@ function getDealHealthRows(){
     };
   });
 }
+var currencyFormatter = new Intl.NumberFormat('en-GB', { style:'currency', currency:'GBP', maximumFractionDigits:0 });
+var dateTimeFormatter = new Intl.DateTimeFormat('en-GB', {
+  year:'numeric', month:'short', day:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false
+});
+function formatCurrency(value){
+  if(typeof value !== 'number' || isNaN(value)){ return '—'; }
+  return currencyFormatter.format(value);
+}
+function formatDate(value){
+  var d = normalizeDateValue(value);
+  return d ? dateTimeFormatter.format(d) : '—';
+}
 
 function normalizeDateValue(v){
   if(!v){ return null; }
@@ -348,7 +384,7 @@ function renderTimeline(filter){
   if(!filtered.length){ return buttons + '<div class="empty-state">No '+f+' events yet.</div>'; }
   var rows = filtered.map(function(ev){
     var dateValue = normalizeDateValue(ev.at);
-    var displayDate = dateValue ? dateValue.toISOString().slice(0,16).replace('T',' ') : '—';
+    var displayDate = formatDate(dateValue);
     return '<div class="timeline-item"><div class="timeline-head"><strong>'+ev.type+'</strong><span>'+displayDate+'</span></div><div><strong>'+ev.title+'</strong></div><div>'+ev.body+'</div><div class="composer-hint">'+ev.actor+'</div></div>';
   }).join('');
   return buttons + rows;
@@ -379,7 +415,7 @@ function renderEmailList(){
     noDataText:'No emails in this folder',
     itemTemplate:function(e){
       var deal=e.dealId?AppState.deals.find(function(d){return d.id===e.dealId}):null;
-      return '<div class="email-item"><div class="email-top"><div class="email-from">'+(e.isRead?'':'<span class="unread-dot"></span>')+e.from+'</div><div class="email-date">'+(e.isStarred?'★ ':'')+e.date+'</div></div><div class="email-subject">'+e.subject+'</div><div class="email-snippet">'+e.snippet+'</div>'+(deal?'<div class="badge">'+deal.title+'</div>':'')+'</div>';
+      return '<div class="email-item"><div class="email-top"><div class="email-from">'+(e.isRead?'':'<span class="unread-dot"></span>')+e.from+'</div><div class="email-date">'+(e.isStarred?'★ ':'')+formatDate(e.date)+'</div></div><div class="email-subject">'+e.subject+'</div><div class="email-snippet">'+e.snippet+'</div>'+(deal?'<div class="badge">'+deal.title+'</div>':'')+'</div>';
     },
     onItemClick:function(ev){AppState.selectEmail(ev.itemData.id);}
   });
@@ -398,8 +434,8 @@ function renderKanban(){
       var chips = '<div class="activity-chip">Last email: '+(stats.relative||'—')+'</div>'+
         '<div class="activity-chip">'+(stats.direction==='sent'?'Sent':'Received')+'</div>'+
         '<div class="activity-chip">'+stats.count+' emails</div>'+
-        (stats.stale?'<div class="activity-chip" style="color:var(--amber);border-color:var(--amber)">No touch 14d+</div>':'');
-      body.append('<div class="deal-card" data-id="'+d.id+'"><div>'+d.title+'</div><div style="font-size:12px;color:var(--text-secondary)">'+d.contact+'</div><div class="deal-value">£'+d.value.toLocaleString()+'</div>'+chips+'</div>');
+        (stats.stale?'<div class="activity-chip warn-chip">No touch 14d+</div>':'');
+      body.append('<div class="deal-card" data-id="'+d.id+'"><div>'+d.title+'</div><div class="info-row">'+d.contact+'</div><div class="deal-value">'+formatCurrency(d.value)+'</div>'+chips+'</div>');
     });
     body.dxSortable({group:'deals',filter:'.deal-card',itemOrientation:'vertical',onAdd:function(e){
       AppState.moveDealToStage(Number($(e.itemElement).data('id')),stage); notify('Deal moved to '+stage); renderKanban(); refreshInsights();
@@ -436,19 +472,19 @@ function renderRightPanel(){
         var em = AppState.emails.find(function(e){return e.id===AppState.selectedEmailId;});
         if(!em){ return '<div class="empty-state">Select an email to view details.</div>'; }
         var deal = AppState.deals.find(function(d){return d.id===em.dealId;});
-        if(item.title==='Thread') return '<div class="thread-wrap"><div class="panel-section-label">Actions</div><div class="thread-actions-row"><div class="thread-actions-primary"><div id="replyBtn"></div><div id="replyAllBtn"></div><div id="archiveBtn"></div></div><div id="threadOverflowBtn"></div></div><div id="messageDetailsAccordion"></div><div class="panel-section-label">Conversation</div><div id="threadScroll" style="max-height:240px;"><div id="threadMessages"></div></div><div id="emailDealSelector" style="margin-top:14px"></div><div id="emailStageSelector" style="margin-top:10px"></div><div class="reply-composer"><div class="panel-section-label">Composer</div><div id="replyToField"></div><div id="replyCcField" style="margin-top:8px"></div><div id="replySubjectField" style="margin-top:8px"></div><div id="replyArea" style="margin-top:8px"></div><div id="sendReply" style="margin-top:10px"></div></div></div>';
+        if(item.title==='Thread') return '<div class="thread-wrap"><div class="panel-section-label">Actions</div><div class="thread-actions-row"><div class="thread-actions-primary"><div id="replyBtn"></div><div id="replyAllBtn"></div><div id="archiveBtn"></div></div><div id="threadOverflowBtn"></div></div><div id="messageDetailsAccordion"></div><div class="panel-section-label">Conversation</div><div id="threadScroll" class="thread-scroll"><div id="threadMessages"></div></div><div id="emailDealSelector" class="mt-5"></div><div id="emailStageSelector" class="mt-3"></div><div class="reply-composer"><div class="panel-section-label">Composer</div><div id="replyToField"></div><div id="replyCcField" class="mt-2"></div><div id="replySubjectField" class="mt-2"></div><div id="replyArea" class="mt-2"></div><div id="sendReply" class="mt-3"></div></div></div>';
         if(item.title==='Deal') return deal
-          ?'<div style="padding:12px"><h3>'+deal.title+'</h3><p>'+deal.contact+'</p><p class="deal-value">£'+deal.value.toLocaleString()+'</p><p><strong>Stage:</strong> '+deal.stage+'</p></div>'
+          ?'<div class="card-body"><h3>'+deal.title+'</h3><p>'+deal.contact+'</p><p class="deal-value">'+formatCurrency(deal.value)+'</p><p><strong>Stage:</strong> '+deal.stage+'</p></div>'
           :'<div class="empty-state">No linked deal. Use the Thread tab to align this email to a deal.</div>';
-        if(item.title==='Activity') return deal?'<div style="padding:12px">'+deal.notes.map(function(n){return '<div class="thread-message">'+n+'</div>';}).join('')+'</div>':'<div class="empty-state">No activity.</div>';
-        return '<div style="padding:12px"><div id="dealHealthGrid"></div><div id="dealActivityAccordion" style="margin-top:12px"></div></div>';
+        if(item.title==='Activity') return deal?'<div class="card-body">'+deal.notes.map(function(n){return '<div class="thread-message">'+n+'</div>';}).join('')+'</div>':'<div class="empty-state">No activity.</div>';
+        return '<div class="card-body"><div id="dealHealthGrid"></div><div id="dealActivityAccordion" class="mt-4"></div></div>';
       }
       var dl = AppState.deals.find(function(d){return d.id===AppState.selectedDealId;});
       if(!dl){ return '<div class="empty-state">Select a deal from Kanban.</div>'; }
-      if(item.title==='Thread') return '<div style="padding:12px">Deal: '+dl.title+'<br/>Stage: '+dl.stage+'</div>';
-      if(item.title==='Deal') return '<div style="padding:12px"><h3>'+dl.title+'</h3><p>'+dl.contact+'</p><p class="deal-value">£'+dl.value.toLocaleString()+'</p><div id="addNoteBtn"></div></div>';
-      if(item.title==='Activity') return '<div style="padding:12px" id="dealTimelineWrap">'+renderTimeline(AppState.timelineFilter)+'</div>';
-      return '<div style="padding:12px"><div id="dealHealthGrid"></div><div id="dealActivityAccordion" style="margin-top:12px"></div></div>';
+      if(item.title==='Thread') return '<div class="card-body">Deal: '+dl.title+'<br/>Stage: '+dl.stage+'</div>';
+      if(item.title==='Deal') return '<div class="card-body"><h3>'+dl.title+'</h3><p>'+dl.contact+'</p><p class="deal-value">'+formatCurrency(dl.value)+'</p><div id="addNoteBtn"></div></div>';
+      if(item.title==='Activity') return '<div class="card-body" id="dealTimelineWrap">'+renderTimeline(AppState.timelineFilter)+'</div>';
+      return '<div class="card-body"><div id="dealHealthGrid"></div><div id="dealActivityAccordion" class="mt-4"></div></div>';
     },
     onContentReady:function(){
       if($('#emailDealSelector').length){
@@ -505,7 +541,7 @@ function renderRightPanel(){
           ? '\n\n---- Forwarded message ----\n' + (activeEmail ? activeEmail.body : '')
           : '';
         var threadItems = (activeEmail.thread && activeEmail.thread.length ? activeEmail.thread : [{from:activeEmail.from,at:activeEmail.date,body:activeEmail.body}]).map(function(msg){
-          return '<div class="thread-message"><div class="thread-message-head"><strong>'+msg.from+'</strong><span>'+msg.at+'</span></div><div>'+msg.body+'</div></div>';
+          return '<div class="thread-message"><div class="thread-message-head"><strong>'+msg.from+'</strong><span>'+formatDate(msg.at)+'</span></div><div>'+msg.body+'</div></div>';
         }).join('');
         $('#threadMessages').html(threadItems);
         $('#threadScroll').dxScrollView({height:240,showScrollbar:'onHover'});
@@ -610,7 +646,7 @@ function renderRightPanel(){
             enabled:true,
             template:function(container, options){
               var notes = (options.data.notes||[]).map(function(n){ return '<div class="thread-message">'+n+'</div>'; }).join('') || '<div class="empty-state">No notes</div>';
-              container.append('<div style="padding:8px 0"><strong>Latest notes</strong>'+notes+'</div>');
+              container.append('<div class="p-2"><strong>Latest notes</strong>'+notes+'</div>');
             }
           },
           onRowClick:function(ev){ AppState.selectDeal(ev.data.id); }
@@ -618,14 +654,14 @@ function renderRightPanel(){
       }
       if($('#dealActivityAccordion').length){
         var summary = getStageSummary().map(function(s){
-          return { title:s.stage + ' ('+s.count+')', text:'Pipeline value: £' + s.value.toLocaleString() };
+          return { title:s.stage + ' ('+s.count+')', text:'Pipeline value: ' + formatCurrency(s.value) };
         });
         $('#dealActivityAccordion').dxAccordion({
           dataSource:summary,
           multiple:true,
           collapsible:true,
           itemTitleTemplate:function(item){ return item.title; },
-          itemTemplate:function(item){ return '<div style="padding:8px">'+item.text+'</div>'; }
+          itemTemplate:function(item){ return '<div class="p-2">'+item.text+'</div>'; }
         });
       }
     }
@@ -639,7 +675,7 @@ $(function(){
     var emails = AppState.emails.filter(function(x){return (x.subject+x.from).toLowerCase().indexOf(q)>-1;});
     var deals = AppState.deals.filter(function(x){return x.title.toLowerCase().indexOf(q)>-1;});
     $('#searchPopup').dxPopup({title:'Search Results',width:560,height:420,contentTemplate:function(c){
-      c.append('<div style="padding:12px"><h4>Emails</h4>'+ (emails.map(function(x){return '<div class="thread-message">'+x.subject+'</div>';}).join('')||'<div class="empty-state">No emails</div>') +'<h4>Deals</h4>'+ (deals.map(function(x){return '<div class="thread-message">'+x.title+'</div>';}).join('')||'<div class="empty-state">No deals</div>') +'</div>');
+      c.append('<div class="p-4"><h4>Emails</h4>'+ (emails.map(function(x){return '<div class="thread-message">'+x.subject+'</div>';}).join('')||'<div class="empty-state">No emails</div>') +'<h4>Deals</h4>'+ (deals.map(function(x){return '<div class="thread-message">'+x.title+'</div>';}).join('')||'<div class="empty-state">No deals</div>') +'</div>');
     }}).dxPopup('instance').show();
   }});
   $('#composeBtn').dxButton({text:'Add Email',type:'success',onClick:function(){$('#composePopup').dxPopup('instance').show();}});
@@ -674,8 +710,8 @@ $(function(){
   $('#emailViewBtn').dxButton({text:'Email View',stylingMode:'outlined',onClick:function(){AppState.currentView='email';$('#emailListContainer').show();$('#kanbanView').hide();}});
   $('#pipelineViewBtn').dxButton({text:'Pipeline View',stylingMode:'outlined',onClick:function(){AppState.currentView='pipeline';$('#emailListContainer').hide();$('#kanbanView').show();renderKanban();}});
   $('#folders').dxList({dataSource:[{name:'Inbox',id:'inbox'},{name:'Sent',id:'sent'},{name:'Drafts',id:'drafts'},{name:'Archive',id:'archive'}],height:176,itemTemplate:function(i){
-    var count = AppState.emails.filter(function(e){return e.folder===i.id;}).length; return '<div>'+i.name+' <span style="color:var(--text-secondary)">('+count+')</span></div>';},onItemClick:function(e){AppState.selectedFolder=e.itemData.id;renderEmailList();}});
-  $('#pipelineStages').dxList({dataSource:AppState.pipelineStages,height:200,itemTemplate:function(s){var c=AppState.deals.filter(function(d){return d.stage===s;}).length;return '<div>'+s+' <span style="color:var(--text-secondary)">('+c+')</span></div>';},onItemClick:function(e){AppState.currentView='pipeline';$('#emailListContainer').hide();$('#kanbanView').show();renderKanban();}});
+    var count = AppState.emails.filter(function(e){return e.folder===i.id;}).length; return '<div>'+i.name+' <span class="count-muted">('+count+')</span></div>';},onItemClick:function(e){AppState.selectedFolder=e.itemData.id;renderEmailList();}});
+  $('#pipelineStages').dxList({dataSource:AppState.pipelineStages,height:200,itemTemplate:function(s){var c=AppState.deals.filter(function(d){return d.stage===s;}).length;return '<div>'+s+' <span class="count-muted">('+c+')</span></div>';},onItemClick:function(e){AppState.currentView='pipeline';$('#emailListContainer').hide();$('#kanbanView').show();renderKanban();}});
   $('#markReadBtn').dxButton({text:'Mark inbox read',stylingMode:'outlined',onClick:function(){
     AppState.emails.forEach(function(e){ if(e.folder==='inbox'){ e.isRead = true; }});
     renderEmailList();
@@ -707,7 +743,7 @@ $(function(){
       }
     },
     contentTemplate:function(c){
-      c.append('<div id="emailModeField"></div><div id="senderField" style="margin-top:10px"></div><div id="subField" style="margin-top:10px"></div><div id="rawBodyField" style="margin-top:10px"></div><div id="smartPreview"></div><div id="linkDeal" style="margin-top:10px"></div><div class="composer-hint">Shortcut: Ctrl/Cmd + Enter to save, Esc to close.</div><div class="compose-actions"><div id="cancelEmailBtn"></div><div id="saveEmailBtn"></div></div>');
+      c.append('<div id="emailModeField"></div><div id="senderField" class="mt-3"></div><div id="subField" class="mt-3"></div><div id="rawBodyField" class="mt-3"></div><div id="smartPreview"></div><div id="linkDeal" class="mt-3"></div><div class="composer-hint">Shortcut: Ctrl/Cmd + Enter to save, Esc to close.</div><div class="compose-actions"><div id="cancelEmailBtn"></div><div id="saveEmailBtn"></div></div>');
       var draft = JSON.parse(sessionStorage.getItem(AppState.addEmailDraftKey)||'{}');
       function saveDraft(){
         var payload = {
@@ -759,8 +795,8 @@ $(function(){
         if(!body.trim()){ notify('Please add email content before saving','warning'); return; }
         AppState.emails.unshift({
           id:Date.now(), folder:'inbox', from:sender, to:'sales@pipemailer.local', cc:'', subject:subject,
-          snippet:body.slice(0,90), date:new Date().toISOString().slice(0,16).replace('T',' '), isRead:false, isStarred:false,
-          dealId:dealId, body:body, thread:[{from:sender,at:new Date().toISOString().slice(0,16).replace('T',' '),body:body}], mode:mode
+          snippet:body.slice(0,90), date:new Date().toISOString(), isRead:false, isStarred:false,
+          dealId:dealId, body:body, thread:[{from:sender,at:new Date().toISOString(),body:body}], mode:mode
         });
         sessionStorage.removeItem(AppState.addEmailDraftKey);
         renderEmailList(); renderKanban(); refreshInsights();
@@ -774,7 +810,7 @@ $(function(){
     }
   });
   $('#notePopup').dxPopup({title:'Add deal note',width:420,height:280,showCloseButton:true,contentTemplate:function(c){
-    c.append('<div id="noteArea"></div><div id="saveNote" style="margin-top:10px"></div>');
+    c.append('<div id="noteArea"></div><div id="saveNote" class="mt-3"></div>');
     $('#noteArea').dxTextArea({height:120,placeholder:'Write note'});
     $('#saveNote').dxButton({text:'Save note',type:'success',onClick:function(e){
       var note = $('#noteArea').dxTextArea('instance').option('value');
@@ -782,7 +818,7 @@ $(function(){
     }});
   }});
   $('#dealPopup').dxPopup({title:'Create deal',width:520,height:470,showCloseButton:true,contentTemplate:function(c){
-    c.append('<div id="dealForm"></div><div id="saveDeal" style="margin-top:10px"></div>');
+    c.append('<div id="dealForm"></div><div id="saveDeal" class="mt-3"></div>');
     var formData = { title:'', contact:'', value:15000, stage:'Leads', probability:25, tags:[] };
     $('#dealForm').dxForm({
       formData:formData,
@@ -824,7 +860,7 @@ $(function(){
     showCloseButton:true,
     hideOnOutsideClick:true,
     contentTemplate:function(c){
-      c.append('<div id="linkContextHelp" style="margin-bottom:10px;color:var(--text-secondary)"></div><div id="linkSourceSelector"></div><div id="linkTargetSelector" style="margin-top:10px"></div><div id="confirmLinkBtn" style="margin-top:14px"></div>');
+      c.append('<div id="linkContextHelp" class="mb-3 text-secondary"></div><div id="linkSourceSelector"></div><div id="linkTargetSelector" class="mt-3"></div><div id="confirmLinkBtn" class="mt-5"></div>');
 
       var isEmailContext = AppState.rightPanelMode === 'email';
       var sourceLabel = isEmailContext ? 'Source Email' : 'Source Deal';
