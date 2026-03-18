@@ -20,7 +20,12 @@ const EMPTY_DRAFT = { to: '', cc: '', subject: '', body: '' };
  *  resolveAssigneeName: (assigneeId?:string|null) => string,
  *  macroTemplates: Array<{id:string,title:string,category:string,body:string,isArchived?:boolean}>,
  *  onUseMacro: (payload: {templateId:string,emailId:number|null}) => void,
- *  onAssign: (payload: {emailId:number,assigneeId:string}) => void
+ *  onAssign: (payload: {emailId:number,assigneeId:string}) => void,
+ *  actorName: string,
+ *  onAddInternalNote: (payload: {emailId:number,note:string,actorName:string}) => void,
+ *  onRequestApproval: (payload: {emailId:number,summary:string,actorName:string}) => void,
+ *  onApprove: (payload: {emailId:number,comment:string,actorName:string}) => void,
+ *  onReject: (payload: {emailId:number,comment:string,actorName:string}) => void
  * }} props
  */
 export default function RightPanel({
@@ -37,10 +42,17 @@ export default function RightPanel({
   resolveAssigneeName,
   macroTemplates,
   onUseMacro,
-  onAssign
+  onAssign,
+  actorName,
+  onAddInternalNote,
+  onRequestApproval,
+  onApprove,
+  onReject
 }) {
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [selectedAssigneeId, setSelectedAssigneeId] = useState('');
+  const [noteDraft, setNoteDraft] = useState('');
+  const [approvalSummary, setApprovalSummary] = useState('');
 
   const composerDraft = useMemo(() => draft ?? EMPTY_DRAFT, [draft]);
   const macroContext = useMemo(() => ({
@@ -48,6 +60,21 @@ export default function RightPanel({
     orderNumber: selectedReturnCase?.orderNumber || 'ORDER-UNKNOWN',
     rmaNumber: selectedReturnCase?.rmaNumber || 'RMA-UNKNOWN'
   }), [selectedEmail, selectedReturnCase]);
+
+  const timelineItems = useMemo(() => {
+    if (!selectedEmail) return [];
+    if (selectedEmail.activityTimeline?.length) return selectedEmail.activityTimeline;
+    return (selectedEmail.thread ?? []).map((message, index) => ({
+      id: `thread-${selectedEmail.id}-${index}`,
+      type: 'public-message',
+      visibility: 'public',
+      actorName: message.from,
+      timestamp: message.at,
+      body: message.body,
+      status: 'sent',
+      locked: true
+    }));
+  }, [selectedEmail]);
 
 
   const openComposerFor = (mode) => {
@@ -201,16 +228,79 @@ export default function RightPanel({
       title: 'Activity',
       content: (
         <div className="thread-wrap">
-          {selectedEmail?.thread?.length ? (
-            selectedEmail.thread.map((message, index) => (
-              <div className="timeline-item" key={`activity-${message.at}-${index}`}>
-                <div className="timeline-head">
-                  <span>{message.from}</span>
-                  <span>{message.at}</span>
+          {selectedEmail ? (
+            <>
+              <article className="thread-message">
+                <div className="panel-section-label">Internal actions</div>
+                <textarea
+                  className="composer-textarea"
+                  value={noteDraft}
+                  onChange={(event) => setNoteDraft(event.target.value)}
+                  placeholder="Add an internal note (not visible to customer)..."
+                />
+                <div className="thread-actions-row">
+                  <button
+                    type="button"
+                    className="dx-button dx-button-mode-contained dx-button-normal"
+                    onClick={() => {
+                      if (!noteDraft.trim()) return;
+                      onAddInternalNote({ emailId: selectedEmail.id, note: noteDraft, actorName });
+                      setNoteDraft('');
+                    }}
+                  >
+                    Add internal note
+                  </button>
                 </div>
-                <div className="email-body-full">{message.body}</div>
+                <textarea
+                  className="composer-textarea"
+                  value={approvalSummary}
+                  onChange={(event) => setApprovalSummary(event.target.value)}
+                  placeholder="Approval context or decision comment..."
+                />
+                <div className="thread-actions-row">
+                  <button
+                    type="button"
+                    className="dx-button dx-button-mode-contained dx-button-normal"
+                    onClick={() => onRequestApproval({ emailId: selectedEmail.id, summary: approvalSummary, actorName })}
+                  >
+                    Request approval
+                  </button>
+                  <button
+                    type="button"
+                    className="dx-button dx-button-mode-contained dx-button-normal"
+                    onClick={() => onApprove({ emailId: selectedEmail.id, comment: approvalSummary, actorName })}
+                  >
+                    Approve
+                  </button>
+                  <button
+                    type="button"
+                    className="dx-button dx-button-mode-outlined dx-button-normal"
+                    onClick={() => onReject({ emailId: selectedEmail.id, comment: approvalSummary, actorName })}
+                  >
+                    Reject
+                  </button>
+                </div>
+              </article>
+              {timelineItems.map((event, index) => (
+                <div className="timeline-item" key={event.id ?? `activity-${event.timestamp}-${index}`}>
+                <div className="timeline-head">
+                  <span>
+                    {event.actorName || 'System'}
+                    <span className={`timeline-visibility ${event.visibility === 'internal' ? 'is-internal' : 'is-public'}`}>
+                      {event.visibility === 'internal' ? 'Internal' : 'Public'}
+                    </span>
+                    {event.type?.startsWith('approval-') ? (
+                      <span className={`timeline-approval ${event.status === 'required' ? 'approval-required' : `approval-${event.status}`}`}>
+                        {event.status === 'required' ? 'Approval required' : event.status}
+                      </span>
+                    ) : null}
+                  </span>
+                  <span>{event.timestamp}</span>
+                </div>
+                <div className="email-body-full">{event.body}</div>
               </div>
-            ))
+              ))}
+            </>
           ) : (
             <div className="empty-state">No activity yet for this thread.</div>
           )}
