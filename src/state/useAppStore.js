@@ -191,7 +191,11 @@ export function useAppStore() {
 
   const actions = useMemo(
     () => ({
-      setView: (view) => dispatch({ type: 'setView', payload: view }),
+      setView: (view) => {
+        const allowedViews = ['email', 'pipeline', 'dashboard'];
+        if (!allowedViews.includes(view)) return;
+        dispatch({ type: 'setView', payload: view });
+      },
       setSearchQuery: (query) => dispatch({ type: 'setSearchQuery', payload: query }),
       toggleTheme: () => dispatch({ type: 'toggleTheme' }),
       setSelectedFolder: (folder) => dispatch({ type: 'setFolder', payload: folder }),
