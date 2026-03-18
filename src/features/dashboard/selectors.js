@@ -12,6 +12,7 @@ export function buildDashboardMetrics(deals, emails, pipelineStages) {
   );
 
   let totalPipelineValue = 0;
+  let weightedPipelineValue = 0;
   let wonDeals = 0;
   let lostDeals = 0;
 
@@ -21,6 +22,7 @@ export function buildDashboardMetrics(deals, emails, pipelineStages) {
 
     if (deal.stage !== 'Lost') {
       totalPipelineValue += value;
+      weightedPipelineValue += Math.round((value * probability) / 100);
     }
 
     if (deal.stage === 'Won') {
@@ -60,6 +62,7 @@ export function buildDashboardMetrics(deals, emails, pipelineStages) {
   return {
     totalDeals: deals.length,
     totalPipelineValue,
+    weightedPipelineValue,
     stageValueBreakdown,
     winRate: closedDeals > 0 ? wonDeals / closedDeals : 0,
     avgDealValue: deals.length > 0 ? totalPipelineValue / deals.length : 0,

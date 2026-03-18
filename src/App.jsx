@@ -126,7 +126,7 @@ export default function App() {
                 onSelectDeal={actions.selectDeal}
               />
             ) : (
-              <DashboardView dashboardMetrics={dashboardMetrics} />
+              <DashboardView dashboardMetrics={dashboardMetrics} emails={state.emails} deals={state.deals} />
             )}
           </section>
         }
