@@ -1,6 +1,14 @@
 import { useMemo, useReducer } from 'react';
 import { initialState } from './initialState';
 
+const PRIORITY_ORDER = ['low', 'medium', 'high', 'urgent'];
+
+function getEscalatedPriority(priority = 'medium') {
+  const currentIndex = PRIORITY_ORDER.indexOf(priority);
+  if (currentIndex === -1 || currentIndex === PRIORITY_ORDER.length - 1) return 'urgent';
+  return PRIORITY_ORDER[currentIndex + 1];
+}
+
 function reducer(state, action) {
   const withAssignment = (email, assigneeId) => {
     const assignedAt = assigneeId ? new Date().toISOString() : null;
@@ -69,7 +77,12 @@ function reducer(state, action) {
             thread: [{ from: 'You', at: now, body: action.payload.body }],
             assigneeId: state.currentUserId,
             assignedAt: now,
-            assignmentHistory: [{ assigneeId: state.currentUserId, assignedAt: now }]
+            assignmentHistory: [{ assigneeId: state.currentUserId, assignedAt: now }],
+            firstResponseDueAt: null,
+            resolutionDueAt: null,
+            priority: 'medium',
+            slaStatus: 'onTrack',
+            slaEscalations: []
           },
           ...state.emails
         ],
@@ -142,7 +155,12 @@ function reducer(state, action) {
             thread: [outboundMessage],
             assigneeId: sourceEmail.assigneeId ?? state.currentUserId,
             assignedAt: sourceEmail.assignedAt ?? now,
-            assignmentHistory: sourceEmail.assignmentHistory ?? []
+            assignmentHistory: sourceEmail.assignmentHistory ?? [],
+            firstResponseDueAt: null,
+            resolutionDueAt: sourceEmail.resolutionDueAt ?? null,
+            priority: sourceEmail.priority ?? 'medium',
+            slaStatus: sourceEmail.slaStatus ?? 'onTrack',
+            slaEscalations: sourceEmail.slaEscalations ?? []
           },
           ...state.emails.map((email) =>
             email.id === emailId
@@ -213,6 +231,54 @@ function reducer(state, action) {
         emails: state.emails.map((email) => (emailSet.has(email.id) ? withAssignment(email, assigneeId) : email))
       };
     }
+    case 'updateEmailPriority': {
+      const { emailId, priority } = action.payload ?? {};
+      if (!emailId || !PRIORITY_ORDER.includes(priority)) return state;
+
+      return {
+        ...state,
+        emails: state.emails.map((email) => (email.id === emailId ? { ...email, priority } : email))
+      };
+    }
+    case 'escalateSlaBreach': {
+      const { emailId, reason = 'SLA breach escalated' } = action.payload ?? {};
+      if (!emailId) return state;
+      const escalatedAt = new Date().toISOString();
+
+      return {
+        ...state,
+        emails: state.emails.map((email) =>
+          email.id === emailId
+            ? {
+                ...email,
+                slaStatus: 'breached',
+                priority: getEscalatedPriority(email.priority),
+                slaEscalations: [...(email.slaEscalations ?? []), { reason, escalatedAt }]
+              }
+            : email
+        )
+      };
+    }
+    case 'bulkEscalateSlaBreaches': {
+      const { emailIds = [], reason = 'Bulk SLA breach escalation' } = action.payload ?? {};
+      const emailSet = new Set(emailIds);
+      if (!emailSet.size) return state;
+      const escalatedAt = new Date().toISOString();
+
+      return {
+        ...state,
+        emails: state.emails.map((email) =>
+          emailSet.has(email.id)
+            ? {
+                ...email,
+                slaStatus: 'breached',
+                priority: getEscalatedPriority(email.priority),
+                slaEscalations: [...(email.slaEscalations ?? []), { reason, escalatedAt }]
+              }
+            : email
+        )
+      };
+    }
     case 'showToast':
       return { ...state, toast: { visible: true, message: action.payload } };
     case 'hideToast':
@@ -251,6 +317,9 @@ export function useAppStore() {
       assignEmail: (payload) => dispatch({ type: 'assignEmail', payload }),
       reassignEmail: (payload) => dispatch({ type: 'assignEmail', payload }),
       bulkAssignEmails: (payload) => dispatch({ type: 'bulkAssignEmails', payload }),
+      updateEmailPriority: (payload) => dispatch({ type: 'updateEmailPriority', payload }),
+      escalateSlaBreach: (payload) => dispatch({ type: 'escalateSlaBreach', payload }),
+      bulkEscalateSlaBreaches: (payload) => dispatch({ type: 'bulkEscalateSlaBreaches', payload }),
       showToast: (message) => dispatch({ type: 'showToast', payload: message }),
       hideToast: () => dispatch({ type: 'hideToast' })
     }),

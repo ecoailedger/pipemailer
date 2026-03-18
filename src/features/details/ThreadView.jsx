@@ -3,9 +3,23 @@ import { formatDate } from '../../utils/formatters';
 import DealAlignmentCard from './DealAlignmentCard.jsx';
 import ReplyComposer from './ReplyComposer.jsx';
 
+const PRIORITY_LABELS = {
+  low: 'Low',
+  medium: 'Medium',
+  high: 'High',
+  urgent: 'Urgent'
+};
+
+const SLA_LABELS = {
+  onTrack: 'On track',
+  atRisk: 'At risk',
+  overdue: 'Overdue',
+  breached: 'Breached'
+};
+
 /**
  * @param {{
- *  selectedEmail: {id:number,from:string,to?:string,cc?:string,subject:string,snippet:string,date:string,thread?:Array<{from:string,at:string,body:string}>,dealId:number|null} | null,
+ *  selectedEmail: {id:number,from:string,to?:string,cc?:string,subject:string,snippet:string,date:string,thread?:Array<{from:string,at:string,body:string}>,dealId:number|null,firstResponseDueAt?:string|null,resolutionDueAt?:string|null,priority?:string,computedSlaStatus?:string,slaStatus?:string} | null,
  *  selectedDeal: {stage:string,title:string} | null,
  *  deals: Array<{id:number,title:string}>,
  *  draft: {to:string,cc:string,subject:string,body:string},
@@ -39,6 +53,8 @@ export default function ThreadView({
     return <div className="empty-state">Select an email to view the full thread.</div>;
   }
 
+  const slaStatus = selectedEmail.computedSlaStatus ?? selectedEmail.slaStatus ?? 'onTrack';
+
   return (
     <div className="thread-wrap">
       <div className="thread-sticky-actions">
@@ -51,6 +67,15 @@ export default function ThreadView({
       <div className="thread-meta">
         <div className="thread-meta-row"><span>Subject</span><span>{selectedEmail.subject}</span></div>
         <div className="thread-meta-row"><span>Linked deal</span><span>{selectedDeal?.title ?? 'Unlinked'}</span></div>
+        <div className="thread-meta-row"><span>First response due</span><span>{formatDate(selectedEmail.firstResponseDueAt)}</span></div>
+        <div className="thread-meta-row"><span>Resolution due</span><span>{formatDate(selectedEmail.resolutionDueAt)}</span></div>
+        <div className="thread-meta-row">
+          <span>SLA</span>
+          <span className="email-chip-row">
+            <span className={`sla-badge priority-${selectedEmail.priority ?? 'medium'}`}>{PRIORITY_LABELS[selectedEmail.priority] ?? 'Medium'}</span>
+            <span className={`sla-badge status-${slaStatus}`}>{SLA_LABELS[slaStatus] ?? 'On track'}</span>
+          </span>
+        </div>
       </div>
 
       <div className="thread-list">

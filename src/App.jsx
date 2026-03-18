@@ -10,7 +10,7 @@ import ComposePopup from './features/popups/ComposePopup.jsx';
 import DealPopup from './features/popups/DealPopup.jsx';
 import LinkPopup from './features/popups/LinkPopup.jsx';
 import { useAppStore } from './state/useAppStore';
-import { buildDashboardMetrics } from './features/dashboard/selectors';
+import { buildDashboardMetrics, selectEmailsWithSla } from './features/dashboard/selectors';
 
 const themeVars = {
   light: {},
@@ -38,6 +38,8 @@ export default function App() {
     [state.assignees]
   );
 
+  const emailsWithSla = useMemo(() => selectEmailsWithSla(state.emails), [state.emails]);
+
   const folderCounts = useMemo(
     () =>
       state.emails.reduce(
@@ -51,7 +53,7 @@ export default function App() {
   );
 
   const filteredEmails = useMemo(() => {
-    return state.emails.filter((email) => {
+    return emailsWithSla.filter((email) => {
       if (email.folder !== state.selectedFolder) return false;
       if (state.selectedQueue === 'unassigned' && email.assigneeId) return false;
       if (state.selectedQueue === 'mine' && email.assigneeId !== state.currentUserId) return false;
@@ -66,7 +68,7 @@ export default function App() {
     normalizedSearchQuery,
     selectedAssigneeFilter,
     state.currentUserId,
-    state.emails,
+    emailsWithSla,
     state.selectedFolder,
     state.selectedQueue,
     state.teamAssigneeIds
@@ -98,8 +100,8 @@ export default function App() {
   }, [searchableDeals, state.selectedStage]);
 
   const selectedEmail = useMemo(
-    () => state.emails.find((email) => email.id === state.selectedEmailId) ?? null,
-    [state.emails, state.selectedEmailId]
+    () => emailsWithSla.find((email) => email.id === state.selectedEmailId) ?? null,
+    [emailsWithSla, state.selectedEmailId]
   );
   const selectedDeal = useMemo(
     () => state.deals.find((deal) => deal.id === state.selectedDealId) ?? null,
@@ -107,8 +109,8 @@ export default function App() {
   );
 
   const dashboardMetrics = useMemo(
-    () => buildDashboardMetrics(state.deals, state.emails, state.pipelineStages),
-    [state.deals, state.emails, state.pipelineStages]
+    () => buildDashboardMetrics(state.deals, emailsWithSla, state.pipelineStages),
+    [state.deals, emailsWithSla, state.pipelineStages]
   );
 
   return (
@@ -169,7 +171,7 @@ export default function App() {
                 onSelectDeal={actions.selectDeal}
               />
             ) : (
-              <DashboardView dashboardMetrics={dashboardMetrics} emails={state.emails} deals={searchableDeals} />
+              <DashboardView dashboardMetrics={dashboardMetrics} emails={emailsWithSla} deals={searchableDeals} />
             )}
           </section>
         }
