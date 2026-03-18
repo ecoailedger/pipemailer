@@ -106,7 +106,13 @@
       <div id="kanbanView"></div>
     </main>
     <section class="panel">
-      <div class="right-header"><strong id="detailTitle">No item selected</strong><div id="linkBtn"></div></div>
+      <div class="right-header">
+        <strong id="detailTitle">No item selected</strong>
+        <div style="display:flex; gap:6px; align-items:center;">
+          <div id="linkBtn"></div>
+          <div id="quickActionsMenu"></div>
+        </div>
+      </div>
       <div id="detailTabs"></div>
     </section>
   </div>
@@ -116,6 +122,7 @@
 <div id="dealPopup"></div>
 <div id="searchPopup"></div>
 <div id="toast"></div>
+<div id="sendLoadPanel"></div>
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn3.devexpress.com/jslib/23.2.5/js/dx.all.js"></script>
 <script>
@@ -275,6 +282,7 @@ function renderRightPanel(){
         var em = AppState.emails.find(function(e){return e.id===AppState.selectedEmailId;});
         if(!em){ return '<div class="empty-state">Select an email to view details.</div>'; }
         var deal = AppState.deals.find(function(d){return d.id===em.dealId;});
+        if(item.title==='Thread') return '<div class="thread-wrap"><div class="thread-actions"><div id="replyBtn"></div><div id="replyAllBtn"></div><div id="forwardBtn"></div><div id="starBtn"></div><div id="archiveBtn"></div><div id="markReadToggleBtn"></div></div><div class="thread-meta"><div class="thread-meta-row"><strong>Subject</strong><span>'+em.subject+'</span></div><div class="thread-meta-row"><strong>From</strong><span>'+em.from+'</span></div><div class="thread-meta-row"><strong>To</strong><span>'+(em.to||'sales@pipemailer.local')+'</span></div><div class="thread-meta-row"><strong>CC</strong><span>'+(em.cc||'—')+'</span></div></div><div id="threadScroll" style="max-height:240px;"><div id="threadMessages"></div></div><div id="emailDealSelector" style="margin-top:10px"></div><div id="emailStageSelector" style="margin-top:10px"></div><div class="reply-composer"><div class="reply-title">Composer</div><div id="replyToField"></div><div id="replyCcField" style="margin-top:8px"></div><div id="replySubjectField" style="margin-top:8px"></div><div id="replyArea" style="margin-top:8px"></div><div id="sendReply" style="margin-top:10px"></div></div></div>';
         if(item.title==='Thread') return '<div class="thread-wrap"><div class="thread-actions"><div id="replyBtn"></div><div id="replyAllBtn"></div><div id="forwardBtn"></div><div id="starBtn"></div><div id="archiveBtn"></div><div id="markReadToggleBtn"></div></div><div class="thread-meta"><div class="thread-meta-row"><strong>Subject</strong><span>'+em.subject+'</span></div><div class="thread-meta-row"><strong>From</strong><span>'+em.from+'</span></div><div class="thread-meta-row"><strong>To</strong><span>'+(em.to||'sales@pipemailer.local')+'</span></div><div class="thread-meta-row"><strong>CC</strong><span>'+(em.cc||'—')+'</span></div></div><div id="threadMessages"></div><div id="emailDealSelector" style="margin-top:10px"></div><div id="emailStageSelector" style="margin-top:10px"></div><div class="reply-composer"><div class="reply-title">Composer</div><div id="replyToField"></div><div id="replyCcField" style="margin-top:8px"></div><div id="replySubjectField" style="margin-top:8px"></div><div id="replyArea" style="margin-top:8px"></div><div id="sendReply" style="margin-top:10px"></div></div></div>';
         if(item.title==='Deal') return deal
           ?'<div style="padding:12px"><h3>'+deal.title+'</h3><p>'+deal.contact+'</p><p class="deal-value">£'+deal.value.toLocaleString()+'</p><p><strong>Stage:</strong> '+deal.stage+'</p></div>'
@@ -347,12 +355,15 @@ function renderRightPanel(){
           return '<div class="thread-message"><div class="thread-message-head"><strong>'+msg.from+'</strong><span>'+msg.at+'</span></div><div>'+msg.body+'</div></div>';
         }).join('');
         $('#threadMessages').html(threadItems);
+        $('#threadScroll').dxScrollView({height:240,showScrollbar:'onHover'});
         $('#replyToField').dxTextBox({value:toValue,label:'To',labelMode:'static',placeholder:'Recipient'});
         $('#replyCcField').dxTextBox({value:ccValue,label:'CC',labelMode:'static',placeholder:'Optional CC'});
         $('#replySubjectField').dxTextBox({value:subjectValue,label:'Subject',labelMode:'static',placeholder:'Subject'});
         $('#replyArea').dxTextArea({height:110,placeholder:'Write your message...',value:bodyPrefill});
         $('#sendReply').dxButton({text:composerMode==='forward'?'Send Forward':'Send',type:'success',onClick:function(e){
           e.component.option('disabled',true);
+          $('#sendLoadPanel').dxLoadPanel('instance').show();
+          setTimeout(function(){notify('Message sent');e.component.option('disabled',false);$('#sendLoadPanel').dxLoadPanel('instance').hide();},700);
           setTimeout(function(){notify('Message sent');e.component.option('disabled',false);},700);
         }});
         $('#replyBtn').dxButton({text:'Reply',icon:'revert',stylingMode:'outlined',onClick:function(){AppState.composerMode='reply';renderRightPanel();}});
@@ -438,6 +449,32 @@ $(function(){
   $('#composeBtn').dxButton({text:'Compose',type:'success',onClick:function(){$('#composePopup').dxPopup('instance').show();}});
   $('#themeBtn').dxButton({text:'Theme',icon:'contrast',stylingMode:'outlined',onClick:toggleTheme});
   $('#notifBtn').dxButton({icon:'bell',hint:'Notifications'});
+  $('#sendLoadPanel').dxLoadPanel({shadingColor:'rgba(0,0,0,0.25)',position:{of:'.app-shell'},visible:false,showIndicator:true,showPane:true,message:'Sending...'});
+  $('#quickActionsMenu').dxDropDownButton({
+    text:'More',
+    icon:'overflow',
+    stylingMode:'text',
+    displayExpr:'text',
+    keyExpr:'id',
+    items:[
+      {id:'deleteEmail',text:'Delete selected email'},
+      {id:'openCompose',text:'Compose new email'},
+      {id:'focusPipeline',text:'Open pipeline view'}
+    ],
+    onItemClick:function(e){
+      if(e.item.id==='deleteEmail'){
+        if(!AppState.selectedEmailId){ notify('Select an email first','warning'); return; }
+        AppState.emails = AppState.emails.filter(function(x){ return x.id !== AppState.selectedEmailId; });
+        AppState.selectedEmailId = null;
+        renderEmailList();
+        renderRightPanel();
+        refreshInsights();
+        notify('Email deleted');
+      }
+      if(e.item.id==='openCompose'){ $('#composePopup').dxPopup('instance').show(); }
+      if(e.item.id==='focusPipeline'){ AppState.currentView='pipeline';$('#emailListContainer').hide();$('#kanbanView').show();renderKanban(); }
+    }
+  });
   $('#emailViewBtn').dxButton({text:'Email View',stylingMode:'outlined',onClick:function(){AppState.currentView='email';$('#emailListContainer').show();$('#kanbanView').hide();}});
   $('#pipelineViewBtn').dxButton({text:'Pipeline View',stylingMode:'outlined',onClick:function(){AppState.currentView='pipeline';$('#emailListContainer').hide();$('#kanbanView').show();renderKanban();}});
   $('#folders').dxList({dataSource:[{name:'Inbox',id:'inbox'},{name:'Sent',id:'sent'},{name:'Drafts',id:'drafts'},{name:'Archive',id:'archive'}],height:176,itemTemplate:function(i){
@@ -454,9 +491,14 @@ $(function(){
   }});
   $('#composePopup').dxPopup({title:'Compose Email',width:560,height:430,showCloseButton:true,contentTemplate:function(c){
     c.append('<div id="toField"></div><div id="subField" style="margin-top:10px"></div><div id="bodyField" style="margin-top:10px"></div><div id="linkDeal" style="margin-top:10px"></div><div id="sendBtn" style="margin-top:12px"></div>');
-    $('#toField').dxTextBox({placeholder:'To'}); $('#subField').dxTextBox({placeholder:'Subject'}); $('#bodyField').dxTextArea({height:140,placeholder:'Message'});
+    $('#toField').dxTagBox({placeholder:'To',acceptCustomValue:true,showSelectionControls:true,applyValueMode:'useButtons'});
+    $('#subField').dxTextBox({placeholder:'Subject'}); $('#bodyField').dxTextArea({height:140,placeholder:'Message'});
     $('#linkDeal').dxSelectBox({dataSource:AppState.deals,displayExpr:'title',valueExpr:'id',placeholder:'Link to deal (optional)'});
-    $('#sendBtn').dxButton({text:'Send',type:'success',onClick:function(e){e.component.option('disabled',true);setTimeout(function(){notify('Email sent');$('#composePopup').dxPopup('instance').hide();e.component.option('disabled',false);},700);}});
+    $('#sendBtn').dxButton({text:'Send',type:'success',onClick:function(e){
+      e.component.option('disabled',true);
+      $('#sendLoadPanel').dxLoadPanel('instance').show();
+      setTimeout(function(){notify('Email sent');$('#composePopup').dxPopup('instance').hide();e.component.option('disabled',false);$('#sendLoadPanel').dxLoadPanel('instance').hide();},700);
+    }});
   }});
   $('#notePopup').dxPopup({title:'Add deal note',width:420,height:280,showCloseButton:true,contentTemplate:function(c){
     c.append('<div id="noteArea"></div><div id="saveNote" style="margin-top:10px"></div>');
