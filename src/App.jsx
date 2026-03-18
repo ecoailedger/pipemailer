@@ -31,6 +31,7 @@ const themeVars = {
 
 export default function App() {
   const { state, actions } = useAppStore();
+  const normalizedSearchQuery = state.searchQuery.trim().toLowerCase();
 
   const folderCounts = useMemo(
     () =>
@@ -45,24 +46,29 @@ export default function App() {
   );
 
   const filteredEmails = useMemo(() => {
-    const normalized = state.searchQuery.trim().toLowerCase();
-
     return state.emails.filter((email) => {
       if (email.folder !== state.selectedFolder) return false;
-      if (!normalized) return true;
-      return [email.from, email.subject, email.snippet].some((field) => field.toLowerCase().includes(normalized));
+      if (!normalizedSearchQuery) return true;
+      return [email.from, email.subject, email.snippet].some((field) =>
+        field.toLowerCase().includes(normalizedSearchQuery)
+      );
     });
-  }, [state.emails, state.searchQuery, state.selectedFolder]);
+  }, [normalizedSearchQuery, state.emails, state.selectedFolder]);
 
-  const filteredDeals = useMemo(() => {
-    const normalized = state.searchQuery.trim().toLowerCase();
+  const searchableDeals = useMemo(() => {
+    if (!normalizedSearchQuery || state.view === 'email') return state.deals;
 
     return state.deals.filter((deal) => {
-      if (state.selectedStage && deal.stage !== state.selectedStage) return false;
-      if (!normalized) return true;
-      return [deal.title, deal.contact, deal.stage].some((field) => field.toLowerCase().includes(normalized));
+      return [deal.title, deal.contact, deal.stage].some((field) => field.toLowerCase().includes(normalizedSearchQuery));
     });
-  }, [state.deals, state.searchQuery, state.selectedStage]);
+  }, [normalizedSearchQuery, state.deals, state.view]);
+
+  const filteredDeals = useMemo(() => {
+    return searchableDeals.filter((deal) => {
+      if (state.selectedStage && deal.stage !== state.selectedStage) return false;
+      return true;
+    });
+  }, [searchableDeals, state.selectedStage]);
 
   const selectedEmail = useMemo(
     () => state.emails.find((email) => email.id === state.selectedEmailId) ?? null,
@@ -126,7 +132,7 @@ export default function App() {
                 onSelectDeal={actions.selectDeal}
               />
             ) : (
-              <DashboardView dashboardMetrics={dashboardMetrics} emails={state.emails} deals={state.deals} />
+              <DashboardView dashboardMetrics={dashboardMetrics} emails={state.emails} deals={searchableDeals} />
             )}
           </section>
         }

@@ -32,7 +32,7 @@ export default function TopBar({
       </div>
       <TextBox
         id="searchBox"
-        placeholder="Search emails"
+        placeholder="Search emails and deals"
         mode="search"
         stylingMode="filled"
         value={searchText}
