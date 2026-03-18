@@ -7,10 +7,11 @@ import { formatCurrency, formatDate } from '../../utils/formatters';
  *  selectedEmail: {from:string,subject:string,snippet:string,date:string,dealId:number|null} | null,
  *  selectedDeal: {title:string,contact:string,stage:string,value:number,probability:number,notes?:string[]} | null,
  *  onCompose: () => void,
- *  onCreateDeal: () => void
+ *  onCreateDeal: () => void,
+ *  onLinkEmail: () => void
  * }} props
  */
-export default function RightPanel({ selectedEmail, selectedDeal, onCompose, onCreateDeal }) {
+export default function RightPanel({ selectedEmail, selectedDeal, onCompose, onCreateDeal, onLinkEmail }) {
   const tabs = [
     {
       title: 'Summary',
@@ -22,8 +23,8 @@ export default function RightPanel({ selectedEmail, selectedDeal, onCompose, onC
             <div className="thread-meta-row"><span>Deal</span><span>{selectedDeal?.title ?? 'Unlinked'}</span></div>
           </div>
           <article className="thread-message">
-            <div className="thread-message-head"><span>{selectedEmail?.subject ?? 'No email selected'}</span></div>
-            <div className="email-body-full">{selectedEmail?.snippet ?? 'Select an email to view details.'}</div>
+            <div className="thread-message-head"><span>{selectedEmail?.subject ?? selectedDeal?.title ?? 'No item selected'}</span></div>
+            <div className="email-body-full">{selectedEmail?.snippet ?? selectedDeal?.contact ?? 'Select an email or a deal to view details.'}</div>
           </article>
         </div>
       )
@@ -53,6 +54,7 @@ export default function RightPanel({ selectedEmail, selectedDeal, onCompose, onC
           <div className="thread-actions-row">
             <Button text="Reply" type="default" stylingMode="contained" onClick={onCompose} />
             <Button text="Create Deal" stylingMode="outlined" onClick={onCreateDeal} />
+            <Button text="Link" stylingMode="text" onClick={onLinkEmail} />
           </div>
         </div>
       )

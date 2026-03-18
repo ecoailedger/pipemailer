@@ -3,7 +3,7 @@
 .logo { font-weight: 700; font-size: 20px; letter-spacing: .3px; }
 .logo span { color: var(--accent); }
 .top-actions { display: flex; gap: 12px; justify-content: flex-end; }
-.content { flex: 1; min-height: 0; display: grid; grid-template-columns: var(--left-pane-width, 280px) minmax(320px, 1fr) var(--resize-handle-width, 10px) var(--right-pane-width, 500px); overflow: hidden; }
+.content { flex: 1; min-height: 0; display: grid; grid-template-columns: var(--left-pane-width, 280px) minmax(320px, 1fr) var(--right-pane-width, 500px); overflow: hidden; }
 .panel { border-right: 1px solid var(--border-subtle); background: var(--bg-surface); min-height: 0; overflow: auto; }
 .panel:last-child { border-right: none; border-left: 1px solid var(--border-subtle); }
 .right-panel { display:flex; flex-direction:column; overflow:hidden; min-height:0; }
