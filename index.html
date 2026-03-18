@@ -23,7 +23,7 @@
     .logo { font-weight: 700; font-size: 20px; letter-spacing: .3px; }
     .logo span { color: var(--accent); }
     .top-actions { display: flex; gap: 12px; justify-content: flex-end; }
-    .content { flex: 1; min-height: 0; display: grid; grid-template-columns: 280px minmax(420px, 1fr) 420px; }
+    .content { flex: 1; min-height: 0; display: grid; grid-template-columns: 280px minmax(420px, 1fr) 500px; }
     .panel { border-right: 1px solid var(--border-subtle); background: var(--bg-surface); min-height: 0; }
     .panel:last-child { border-right: none; border-left: 1px solid var(--border-subtle); }
     .section-title { margin: 18px 16px 8px; font: 500 12px var(--font-mono); color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; }
@@ -54,7 +54,14 @@
     .deal-value { color: var(--accent); font-family: var(--font-mono); font-size: 12px; margin-top: 6px; }
     .right-header { padding: 14px; border-bottom: 1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
     .empty-state { padding: 36px 26px; text-align:center; color: var(--text-secondary); }
+    .thread-wrap { padding: 14px; }
+    .thread-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+    .thread-meta { border: 1px solid var(--border); background: var(--bg-elevated); border-radius: var(--radius-md); padding: 10px; margin-bottom: 10px; font-size: 13px; color: var(--text-secondary); }
+    .thread-meta-row { display:flex; justify-content:space-between; margin-bottom:4px; }
     .thread-message { border:1px solid var(--border); background:var(--bg-elevated); border-radius:var(--radius-md); padding:10px; margin-bottom:10px; }
+    .thread-message-head { display:flex; justify-content:space-between; margin-bottom:8px; font-size:12px; color:var(--text-secondary); }
+    .reply-composer { border:1px solid var(--border); background:var(--bg-surface); border-radius:var(--radius-md); padding:10px; margin-top:10px; }
+    .reply-title { font: 500 12px var(--font-mono); color: var(--text-secondary); text-transform: uppercase; letter-spacing: .8px; margin-bottom: 8px; }
     #detailTabs { height: calc(100% - 58px); }
     .dx-list, .dx-popup-content, .dx-scrollable-content { background: var(--bg-surface)!important; }
     .dx-texteditor { background: var(--bg-elevated)!important; border-color: var(--border)!important; }
@@ -113,25 +120,64 @@
 <script src="https://cdn3.devexpress.com/jslib/23.2.5/js/dx.all.js"></script>
 <script>
 var mockDeals = [
-  {id:1,title:'Acme Renewal 2026',contact:'Acme Ltd',value:42000,stage:'Leads',probability:20,days:4,notes:['Initial discovery call complete']},
-  {id:2,title:'Nimbus Security Upgrade',contact:'Nimbus AG',value:75000,stage:'Qualified',probability:50,days:7,notes:['Technical scoping shared']},
-  {id:3,title:'Orbit BI Expansion',contact:'Orbit Labs',value:118000,stage:'Proposal',probability:70,days:10,notes:['Proposal sent last week']},
-  {id:4,title:'Vertex Pilot',contact:'Vertex Co',value:26000,stage:'Won',probability:100,days:2,notes:['Signed and kickoff booked']}
+  {id:1,title:'Acme Renewal 2026',contact:'Maya Patel · Acme Ltd',value:42000,stage:'Leads',probability:20,days:4,notes:['Initial discovery call complete']},
+  {id:2,title:'Nimbus Security Upgrade',contact:'Liam Chen · Nimbus AG',value:75000,stage:'Qualified',probability:50,days:7,notes:['Technical scoping shared']},
+  {id:3,title:'Orbit BI Expansion',contact:'Sara Gomez · Orbit Labs',value:118000,stage:'Proposal',probability:70,days:10,notes:['Proposal sent last week']},
+  {id:4,title:'Vertex Pilot',contact:'Noah Williams · Vertex Co',value:26000,stage:'Won',probability:100,days:2,notes:['Signed and kickoff booked']},
+  {id:5,title:'Helios Analytics Suite',contact:'Ava Johnson · Helios Inc',value:56000,stage:'Leads',probability:25,days:5,notes:['Awaiting discovery call slots']},
+  {id:6,title:'BlueHarbor Migration',contact:'Ethan Brooks · BlueHarbor',value:91000,stage:'Qualified',probability:55,days:8,notes:['Security packet accepted']},
+  {id:7,title:'Northwind Expansion',contact:'Olivia Reed · Northwind',value:133000,stage:'Negotiation',probability:72,days:11,notes:['Procurement reviewing final terms']},
+  {id:8,title:'Stonegate Compliance Program',contact:'Mason Clark · Stonegate',value:47000,stage:'Won',probability:100,days:3,notes:['Project handoff complete']},
+  {id:9,title:'Crestview Replatform',contact:'Emma Davis · Crestview',value:68000,stage:'Lost',probability:0,days:14,notes:['Budget moved to next quarter']},
+  {id:10,title:'Redwood Support Retainer',contact:'James Hall · Redwood',value:31000,stage:'Lost',probability:0,days:9,notes:['Chose incumbent vendor']}
 ];
 var themeMode = 'light';
 var mockEmails = [
-  {id:101,folder:'inbox',from:'Maya Patel',subject:'Q4 rollout timeline',snippet:'Can we align on a phased release for November?',date:'2026-02-12',isRead:false,dealId:2,body:'Hi team, can we align on a phased release for November rollout? Thanks!'},
-  {id:102,folder:'inbox',from:'Liam Chen',subject:'Contract redlines attached',snippet:'Please see legal comments, mostly payment terms.',date:'2026-02-11',isRead:true,dealId:3,body:'Please see legal comments, mostly payment terms and SLA.'},
-  {id:103,folder:'inbox',from:'Sara Gomez',subject:'Kickoff notes',snippet:'Great meeting today. Sharing notes and actions.',date:'2026-02-09',isRead:false,dealId:1,body:'Great meeting today. Sharing notes and action items for next step.'},
-  {id:104,folder:'sent',from:'You',subject:'Re: Security questionnaire',snippet:'Attached the completed responses.',date:'2026-02-08',isRead:true,dealId:2,body:'Attached the completed responses, let me know if anything missing.'}
+  {id:101,folder:'inbox',from:'Maya Patel',to:'sales@pipemailer.local',cc:'ops@pipemailer.local',subject:'Q4 rollout timeline',snippet:'Can we align on a phased release for November?',date:'2026-03-18 09:02',isRead:false,isStarred:true,dealId:2,body:'Hi team, can we align on a phased release for November rollout? Thanks!',thread:[{from:'Maya Patel',at:'2026-03-18 09:02',body:'Can we align on a phased release for November rollout?'},{from:'You',at:'2026-03-18 09:20',body:'Yes, sharing a milestone draft by EOD.'}]},
+  {id:102,folder:'inbox',from:'Liam Chen',to:'sales@pipemailer.local',cc:'',subject:'Contract redlines attached',snippet:'Please see legal comments, mostly payment terms.',date:'2026-03-18 08:14',isRead:true,isStarred:false,dealId:3,body:'Please see legal comments, mostly payment terms and SLA.',thread:[{from:'Liam Chen',at:'2026-03-17 18:40',body:'Attached legal comments for review.'},{from:'You',at:'2026-03-17 19:08',body:'Received, looping in legal lead.'},{from:'Liam Chen',at:'2026-03-18 08:14',body:'Thanks, can you confirm turnaround by Friday?'}]},
+  {id:103,folder:'inbox',from:'Sara Gomez',to:'sales@pipemailer.local',cc:'',subject:'Kickoff notes',snippet:'Great meeting today. Sharing notes and actions.',date:'2026-03-17 16:31',isRead:false,isStarred:false,dealId:1,body:'Great meeting today. Sharing notes and action items for next step.',thread:[{from:'Sara Gomez',at:'2026-03-17 16:31',body:'Great meeting today. Sharing notes and action items for next step.'}]},
+  {id:104,folder:'inbox',from:'Noah Williams',to:'sales@pipemailer.local',cc:'',subject:'Security questionnaire follow-up',snippet:'Can you resend section 4 in editable format?',date:'2026-03-17 13:11',isRead:false,isStarred:false,dealId:6,body:'Can you resend section 4 in editable format?',thread:[{from:'Noah Williams',at:'2026-03-17 13:11',body:'Can you resend section 4 in editable format?'}]},
+  {id:105,folder:'inbox',from:'Ava Johnson',to:'sales@pipemailer.local',cc:'finance@pipemailer.local',subject:'Budget sign-off timing',snippet:'Finance review is tomorrow afternoon.',date:'2026-03-17 11:03',isRead:true,isStarred:true,dealId:5,body:'Finance review is tomorrow afternoon, then we can sign off.',thread:[{from:'Ava Johnson',at:'2026-03-17 11:03',body:'Finance review is tomorrow afternoon.'}]},
+  {id:106,folder:'inbox',from:'Ethan Brooks',to:'sales@pipemailer.local',cc:'',subject:'Migration plan version 2',snippet:'Updated timeline and rollback strategy included.',date:'2026-03-17 10:12',isRead:false,isStarred:false,dealId:6,body:'Updated timeline and rollback strategy included.',thread:[{from:'Ethan Brooks',at:'2026-03-17 10:12',body:'Updated timeline and rollback strategy included.'}]},
+  {id:107,folder:'inbox',from:'Olivia Reed',to:'sales@pipemailer.local',cc:'legal@pipemailer.local',subject:'NDA clause clarification',snippet:'Clause 7.2 needs revised wording.',date:'2026-03-16 19:04',isRead:true,isStarred:false,dealId:7,body:'Clause 7.2 needs revised wording before signature.',thread:[{from:'Olivia Reed',at:'2026-03-16 19:04',body:'Clause 7.2 needs revised wording before signature.'}]},
+  {id:108,folder:'inbox',from:'Mason Clark',to:'sales@pipemailer.local',cc:'',subject:'Pilot success metrics',snippet:'Sharing dashboard screenshot and adoption data.',date:'2026-03-16 17:42',isRead:false,isStarred:false,dealId:8,body:'Sharing dashboard screenshot and adoption data.',thread:[{from:'Mason Clark',at:'2026-03-16 17:42',body:'Sharing dashboard screenshot and adoption data.'}]},
+  {id:109,folder:'inbox',from:'Emma Davis',to:'sales@pipemailer.local',cc:'',subject:'Replatform stakeholder map',snippet:'Added CIO and procurement lead contacts.',date:'2026-03-16 15:16',isRead:true,isStarred:false,dealId:9,body:'Added CIO and procurement lead contacts.',thread:[{from:'Emma Davis',at:'2026-03-16 15:16',body:'Added CIO and procurement lead contacts.'}]},
+  {id:110,folder:'inbox',from:'James Hall',to:'sales@pipemailer.local',cc:'',subject:'Support retainer questions',snippet:'Need clarity on response time SLA tiers.',date:'2026-03-16 12:24',isRead:false,isStarred:true,dealId:10,body:'Need clarity on response time SLA tiers.',thread:[{from:'James Hall',at:'2026-03-16 12:24',body:'Need clarity on response time SLA tiers.'}]},
+  {id:111,folder:'inbox',from:'Priya Nair',to:'sales@pipemailer.local',cc:'',subject:'Reference customer call request',snippet:'Do you have availability Thursday?',date:'2026-03-16 09:10',isRead:false,isStarred:false,dealId:null,body:'Do you have availability Thursday for a reference call?',thread:[{from:'Priya Nair',at:'2026-03-16 09:10',body:'Do you have availability Thursday for a reference call?'}]},
+  {id:112,folder:'inbox',from:'Daniel Moore',to:'sales@pipemailer.local',cc:'',subject:'Updated procurement checklist',snippet:'All required docs listed in attachment.',date:'2026-03-15 14:50',isRead:true,isStarred:false,dealId:3,body:'All required docs listed in attachment.',thread:[{from:'Daniel Moore',at:'2026-03-15 14:50',body:'All required docs listed in attachment.'}]},
+  {id:113,folder:'sent',from:'You',to:'Maya Patel',cc:'',subject:'Re: Q4 rollout timeline',snippet:'Shared milestone draft and owners.',date:'2026-03-18 09:20',isRead:true,isStarred:false,dealId:2,body:'Shared milestone draft and owners.'},
+  {id:114,folder:'sent',from:'You',to:'Liam Chen',cc:'legal@pipemailer.local',subject:'Re: Contract redlines attached',snippet:'Legal review started, ETA Thursday.',date:'2026-03-18 08:29',isRead:true,isStarred:false,dealId:3,body:'Legal review started, ETA Thursday.'},
+  {id:115,folder:'sent',from:'You',to:'Ethan Brooks',cc:'',subject:'Re: Migration plan version 2',snippet:'Rollback plan looks good with one update.',date:'2026-03-17 11:00',isRead:true,isStarred:false,dealId:6,body:'Rollback plan looks good with one update on comms.'},
+  {id:116,folder:'sent',from:'You',to:'Olivia Reed',cc:'',subject:'Re: NDA clause clarification',snippet:'Proposed wording attached for 7.2.',date:'2026-03-16 20:12',isRead:true,isStarred:false,dealId:7,body:'Proposed wording attached for 7.2.'},
+  {id:117,folder:'drafts',from:'You',to:'Emma Davis',cc:'',subject:'Draft: Replatform pricing options',snippet:'Two package options with phased terms.',date:'2026-03-15 10:45',isRead:true,isStarred:false,dealId:9,body:'Two package options with phased terms.'},
+  {id:118,folder:'drafts',from:'You',to:'Priya Nair',cc:'',subject:'Draft: Reference customer intro',snippet:'Draft intro message for customer call.',date:'2026-03-14 17:37',isRead:true,isStarred:false,dealId:null,body:'Draft intro message for customer call.'}
 ];
 window.AppState = {
   currentView:'email',selectedEmailId:null,selectedDealId:null,selectedFolder:'inbox',rightPanelMode:'email',searchQuery:'',
-  emails:mockEmails,deals:mockDeals,pipelineStages:['Leads','Qualified','Proposal','Won','Lost'],
+  composerMode:'reply',
+  emails:mockEmails,deals:mockDeals,pipelineStages:['Leads','Qualified','Proposal','Negotiation','Won','Lost'],
   selectEmail:function(id){this.selectedEmailId=id; this.rightPanelMode='email'; renderRightPanel();},
   selectDeal:function(id){this.selectedDealId=id; this.rightPanelMode='deal'; renderRightPanel();},
   moveDealToStage:function(id,stage){ var d=this.deals.find(function(x){return x.id===id}); if(d){d.stage=stage;} },
   linkEmailToDeal:function(emailId,dealId){ var e=this.emails.find(function(x){return x.id===emailId}); if(e){e.dealId=dealId;} },
+  toggleEmailStar:function(emailId){
+    var e=this.emails.find(function(x){return x.id===emailId});
+    if(!e){ return false; }
+    e.isStarred = !e.isStarred;
+    return e.isStarred;
+  },
+  archiveEmail:function(emailId){
+    var e=this.emails.find(function(x){return x.id===emailId});
+    if(!e){ return false; }
+    e.folder = 'archive';
+    return true;
+  },
+  markEmailRead:function(emailId,isRead){
+    var e=this.emails.find(function(x){return x.id===emailId});
+    if(!e){ return false; }
+    e.isRead = !!isRead;
+    return true;
+  },
   updateEmailDealStage:function(emailId,stage){
     var e=this.emails.find(function(x){return x.id===emailId});
     if(!e||!e.dealId){ return false; }
@@ -177,7 +223,7 @@ function renderEmailList(){
     noDataText:'No emails in this folder',
     itemTemplate:function(e){
       var deal=e.dealId?AppState.deals.find(function(d){return d.id===e.dealId}):null;
-      return '<div class="email-item"><div class="email-top"><div class="email-from">'+(e.isRead?'':'<span class="unread-dot"></span>')+e.from+'</div><div class="email-date">'+e.date+'</div></div><div class="email-subject">'+e.subject+'</div><div class="email-snippet">'+e.snippet+'</div>'+(deal?'<div class="badge">'+deal.title+'</div>':'')+'</div>';
+      return '<div class="email-item"><div class="email-top"><div class="email-from">'+(e.isRead?'':'<span class="unread-dot"></span>')+e.from+'</div><div class="email-date">'+(e.isStarred?'★ ':'')+e.date+'</div></div><div class="email-subject">'+e.subject+'</div><div class="email-snippet">'+e.snippet+'</div>'+(deal?'<div class="badge">'+deal.title+'</div>':'')+'</div>';
     },
     onItemClick:function(ev){AppState.selectEmail(ev.itemData.id);}
   });
@@ -229,7 +275,7 @@ function renderRightPanel(){
         var em = AppState.emails.find(function(e){return e.id===AppState.selectedEmailId;});
         if(!em){ return '<div class="empty-state">Select an email to view details.</div>'; }
         var deal = AppState.deals.find(function(d){return d.id===em.dealId;});
-        if(item.title==='Thread') return '<div style="padding:12px"><div class="thread-message"><strong>'+em.from+'</strong><p>'+em.body+'</p></div><div id="emailDealSelector" style="margin-top:10px"></div><div id="emailStageSelector" style="margin-top:10px"></div><div id="replyArea" style="margin-top:10px"></div><div id="sendReply" style="margin-top:10px"></div></div>';
+        if(item.title==='Thread') return '<div class="thread-wrap"><div class="thread-actions"><div id="replyBtn"></div><div id="replyAllBtn"></div><div id="forwardBtn"></div><div id="starBtn"></div><div id="archiveBtn"></div><div id="markReadToggleBtn"></div></div><div class="thread-meta"><div class="thread-meta-row"><strong>Subject</strong><span>'+em.subject+'</span></div><div class="thread-meta-row"><strong>From</strong><span>'+em.from+'</span></div><div class="thread-meta-row"><strong>To</strong><span>'+(em.to||'sales@pipemailer.local')+'</span></div><div class="thread-meta-row"><strong>CC</strong><span>'+(em.cc||'—')+'</span></div></div><div id="threadMessages"></div><div id="emailDealSelector" style="margin-top:10px"></div><div id="emailStageSelector" style="margin-top:10px"></div><div class="reply-composer"><div class="reply-title">Composer</div><div id="replyToField"></div><div id="replyCcField" style="margin-top:8px"></div><div id="replySubjectField" style="margin-top:8px"></div><div id="replyArea" style="margin-top:8px"></div><div id="sendReply" style="margin-top:10px"></div></div></div>';
         if(item.title==='Deal') return deal
           ?'<div style="padding:12px"><h3>'+deal.title+'</h3><p>'+deal.contact+'</p><p class="deal-value">£'+deal.value.toLocaleString()+'</p><p><strong>Stage:</strong> '+deal.stage+'</p></div>'
           :'<div class="empty-state">No linked deal. Use the Thread tab to align this email to a deal.</div>';
@@ -289,8 +335,51 @@ function renderRightPanel(){
         });
       }
       if($('#replyArea').length){
-        $('#replyArea').dxTextArea({height:90,placeholder:'Write your reply...'});
-        $('#sendReply').dxButton({text:'Send Reply',type:'success',onClick:function(e){e.component.option('disabled',true);setTimeout(function(){notify('Reply sent');e.component.option('disabled',false);},700);}});
+        var activeEmail = AppState.emails.find(function(e){return e.id===AppState.selectedEmailId;});
+        var composerMode = AppState.composerMode || 'reply';
+        var toValue = composerMode==='forward' ? '' : (activeEmail ? activeEmail.from : '');
+        var ccValue = composerMode==='replyAll' ? (activeEmail && activeEmail.cc ? activeEmail.cc : 'team@pipemailer.local') : '';
+        var subjectValue = activeEmail ? ((composerMode==='forward' ? 'Fwd: ' : 'Re: ') + activeEmail.subject.replace(/^Re:\s|^Fwd:\s/i,'')) : '';
+        var bodyPrefill = composerMode==='forward'
+          ? '\n\n---- Forwarded message ----\n' + (activeEmail ? activeEmail.body : '')
+          : '';
+        var threadItems = (activeEmail.thread && activeEmail.thread.length ? activeEmail.thread : [{from:activeEmail.from,at:activeEmail.date,body:activeEmail.body}]).map(function(msg){
+          return '<div class="thread-message"><div class="thread-message-head"><strong>'+msg.from+'</strong><span>'+msg.at+'</span></div><div>'+msg.body+'</div></div>';
+        }).join('');
+        $('#threadMessages').html(threadItems);
+        $('#replyToField').dxTextBox({value:toValue,label:'To',labelMode:'static',placeholder:'Recipient'});
+        $('#replyCcField').dxTextBox({value:ccValue,label:'CC',labelMode:'static',placeholder:'Optional CC'});
+        $('#replySubjectField').dxTextBox({value:subjectValue,label:'Subject',labelMode:'static',placeholder:'Subject'});
+        $('#replyArea').dxTextArea({height:110,placeholder:'Write your message...',value:bodyPrefill});
+        $('#sendReply').dxButton({text:composerMode==='forward'?'Send Forward':'Send',type:'success',onClick:function(e){
+          e.component.option('disabled',true);
+          setTimeout(function(){notify('Message sent');e.component.option('disabled',false);},700);
+        }});
+        $('#replyBtn').dxButton({text:'Reply',icon:'revert',stylingMode:'outlined',onClick:function(){AppState.composerMode='reply';renderRightPanel();}});
+        $('#replyAllBtn').dxButton({text:'Reply all',icon:'group',stylingMode:'outlined',onClick:function(){AppState.composerMode='replyAll';renderRightPanel();}});
+        $('#forwardBtn').dxButton({text:'Forward',icon:'redo',stylingMode:'outlined',onClick:function(){AppState.composerMode='forward';renderRightPanel();}});
+        $('#starBtn').dxButton({text:activeEmail && activeEmail.isStarred?'Unstar':'Star',icon:activeEmail && activeEmail.isStarred?'favorites':'favorite',stylingMode:'outlined',onClick:function(){
+          var starred = AppState.toggleEmailStar(activeEmail.id);
+          renderEmailList();
+          renderRightPanel();
+          notify(starred?'Email starred':'Star removed');
+        }});
+        $('#archiveBtn').dxButton({text:'Archive',icon:'folder',stylingMode:'outlined',onClick:function(){
+          AppState.archiveEmail(activeEmail.id);
+          AppState.selectedEmailId = null;
+          renderEmailList();
+          renderRightPanel();
+          refreshInsights();
+          notify('Email archived');
+        }});
+        $('#markReadToggleBtn').dxButton({text:activeEmail && activeEmail.isRead?'Mark unread':'Mark read',icon:'email',stylingMode:'outlined',onClick:function(){
+          var nextIsRead = !activeEmail.isRead;
+          AppState.markEmailRead(activeEmail.id,nextIsRead);
+          renderEmailList();
+          renderRightPanel();
+          refreshInsights();
+          notify(nextIsRead?'Marked read':'Marked unread');
+        }});
       }
       if($('#addNoteBtn').length){
         $('#addNoteBtn').dxButton({text:'Add note',onClick:function(){$('#notePopup').dxPopup('instance').show();}});
@@ -351,7 +440,7 @@ $(function(){
   $('#notifBtn').dxButton({icon:'bell',hint:'Notifications'});
   $('#emailViewBtn').dxButton({text:'Email View',stylingMode:'outlined',onClick:function(){AppState.currentView='email';$('#emailListContainer').show();$('#kanbanView').hide();}});
   $('#pipelineViewBtn').dxButton({text:'Pipeline View',stylingMode:'outlined',onClick:function(){AppState.currentView='pipeline';$('#emailListContainer').hide();$('#kanbanView').show();renderKanban();}});
-  $('#folders').dxList({dataSource:[{name:'Inbox',id:'inbox'},{name:'Sent',id:'sent'},{name:'Drafts',id:'drafts'}],height:140,itemTemplate:function(i){
+  $('#folders').dxList({dataSource:[{name:'Inbox',id:'inbox'},{name:'Sent',id:'sent'},{name:'Drafts',id:'drafts'},{name:'Archive',id:'archive'}],height:176,itemTemplate:function(i){
     var count = AppState.emails.filter(function(e){return e.folder===i.id;}).length; return '<div>'+i.name+' <span style="color:var(--text-secondary)">('+count+')</span></div>';},onItemClick:function(e){AppState.selectedFolder=e.itemData.id;renderEmailList();}});
   $('#pipelineStages').dxList({dataSource:AppState.pipelineStages,height:200,itemTemplate:function(s){var c=AppState.deals.filter(function(d){return d.stage===s;}).length;return '<div>'+s+' <span style="color:var(--text-secondary)">('+c+')</span></div>';},onItemClick:function(e){AppState.currentView='pipeline';$('#emailListContainer').hide();$('#kanbanView').show();renderKanban();}});
   $('#markReadBtn').dxButton({text:'Mark inbox read',stylingMode:'outlined',onClick:function(){
