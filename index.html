@@ -129,6 +129,14 @@ window.AppState = {
   selectDeal:function(id){this.selectedDealId=id; this.rightPanelMode='deal'; renderRightPanel();},
   moveDealToStage:function(id,stage){ var d=this.deals.find(function(x){return x.id===id}); if(d){d.stage=stage;} },
   linkEmailToDeal:function(emailId,dealId){ var e=this.emails.find(function(x){return x.id===emailId}); if(e){e.dealId=dealId;} },
+  updateEmailDealStage:function(emailId,stage){
+    var e=this.emails.find(function(x){return x.id===emailId});
+    if(!e||!e.dealId){ return false; }
+    var d=this.deals.find(function(x){return x.id===e.dealId});
+    if(!d){ return false; }
+    d.stage=stage;
+    return true;
+  },
   addDealNote:function(dealId,note){ var d=this.deals.find(function(x){return x.id===dealId}); if(d){d.notes.unshift(note);} }
 };
 function notify(msg,type){ $('#toast').dxToast({message:msg,type:type||'success',displayTime:1800,width:320}).dxToast('instance').show(); }
@@ -186,8 +194,10 @@ function renderRightPanel(){
         var em = AppState.emails.find(function(e){return e.id===AppState.selectedEmailId;});
         if(!em){ return '<div class="empty-state">Select an email to view details.</div>'; }
         var deal = AppState.deals.find(function(d){return d.id===em.dealId;});
-        if(item.title==='Thread') return '<div style="padding:12px"><div class="thread-message"><strong>'+em.from+'</strong><p>'+em.body+'</p></div><div id="replyArea"></div><div id="sendReply"></div></div>';
-        if(item.title==='Deal') return deal?'<div style="padding:12px"><h3>'+deal.title+'</h3><p>'+deal.contact+'</p><p class="deal-value">£'+deal.value.toLocaleString()+'</p></div>':'<div class="empty-state">No linked deal.</div>';
+        if(item.title==='Thread') return '<div style="padding:12px"><div class="thread-message"><strong>'+em.from+'</strong><p>'+em.body+'</p></div><div id="emailDealSelector" style="margin-top:10px"></div><div id="emailStageSelector" style="margin-top:10px"></div><div id="replyArea" style="margin-top:10px"></div><div id="sendReply" style="margin-top:10px"></div></div>';
+        if(item.title==='Deal') return deal
+          ?'<div style="padding:12px"><h3>'+deal.title+'</h3><p>'+deal.contact+'</p><p class="deal-value">£'+deal.value.toLocaleString()+'</p><p><strong>Stage:</strong> '+deal.stage+'</p></div>'
+          :'<div class="empty-state">No linked deal. Use the Thread tab to align this email to a deal.</div>';
         return deal?'<div style="padding:12px">'+deal.notes.map(function(n){return '<div class="thread-message">'+n+'</div>';}).join('')+'</div>':'<div class="empty-state">No activity.</div>';
       }
       var dl = AppState.deals.find(function(d){return d.id===AppState.selectedDealId;});
@@ -197,6 +207,50 @@ function renderRightPanel(){
       return '<div style="padding:12px">'+dl.notes.map(function(n){return '<div class="thread-message">'+n+'</div>';}).join('')+'</div>';
     },
     onContentReady:function(){
+      if($('#emailDealSelector').length){
+        var selectedEmail = AppState.emails.find(function(e){return e.id===AppState.selectedEmailId;});
+        $('#emailDealSelector').dxSelectBox({
+          dataSource:AppState.deals,
+          displayExpr:'title',
+          valueExpr:'id',
+          value:selectedEmail && selectedEmail.dealId ? selectedEmail.dealId : null,
+          placeholder:'Align email to a deal',
+          searchEnabled:true,
+          label:'Aligned Deal',
+          labelMode:'static',
+          onValueChanged:function(ev){
+            if(!selectedEmail){ return; }
+            AppState.linkEmailToDeal(selectedEmail.id,ev.value||null);
+            renderEmailList();
+            renderRightPanel();
+            notify(ev.value ? 'Email aligned to deal' : 'Email alignment removed');
+          }
+        });
+      }
+      if($('#emailStageSelector').length){
+        var selectedEmailForStage = AppState.emails.find(function(e){return e.id===AppState.selectedEmailId;});
+        var linkedDeal = selectedEmailForStage && selectedEmailForStage.dealId
+          ? AppState.deals.find(function(d){return d.id===selectedEmailForStage.dealId;})
+          : null;
+        $('#emailStageSelector').dxSelectBox({
+          dataSource:AppState.pipelineStages,
+          value:linkedDeal?linkedDeal.stage:null,
+          placeholder:linkedDeal?'Set deal stage':'Align this email to a deal first',
+          disabled:!linkedDeal,
+          label:'Deal Stage for this Email',
+          labelMode:'static',
+          onValueChanged:function(ev){
+            if(!selectedEmailForStage || !ev.value){ return; }
+            var updated = AppState.updateEmailDealStage(selectedEmailForStage.id,ev.value);
+            if(updated){
+              refreshInsights();
+              renderKanban();
+              renderEmailList();
+              notify('Deal stage updated to '+ev.value);
+            }
+          }
+        });
+      }
       if($('#replyArea').length){
         $('#replyArea').dxTextArea({height:90,placeholder:'Write your reply...'});
         $('#sendReply').dxButton({text:'Send Reply',type:'success',onClick:function(e){e.component.option('disabled',true);setTimeout(function(){notify('Reply sent');e.component.option('disabled',false);},700);}});
