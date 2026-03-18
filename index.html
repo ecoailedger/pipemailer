@@ -566,6 +566,39 @@ function renderEmailList(){
   });
 }
 function renderKanban(){
+  function debugDnDLog(payload){
+    if(window.__debugDnD){
+      console.log('[KanbanDnD]', payload);
+    }
+  }
+  function removeKanbanPlaceholders(){
+    $('#kanbanView .kanban-body .empty-state').remove();
+  }
+  function disposeKanbanSortables(){
+    $('#kanbanView .kanban-body').each(function(){
+      var inst = $(this).data('dxSortable');
+      if(inst && typeof inst.dispose === 'function'){
+        inst.dispose();
+      }
+    });
+  }
+  function commitKanbanStageMove(dealId,fromStage,toStage){
+    if(!dealId || !toStage || fromStage===toStage){ return true; }
+    debugDnDLog({dealId:dealId,fromStage:fromStage,toStage:toStage,phase:'commit:start'});
+    AppState.moveDealToStage(dealId,toStage);
+    var movedDeal = AppState.deals.find(function(d){ return d.id===dealId; });
+    var isConsistent = !!movedDeal && movedDeal.stage===toStage;
+    if(!isConsistent){
+      if(movedDeal && fromStage){ movedDeal.stage = fromStage; }
+      notify('Could not move deal. Board restored.','warning');
+      debugDnDLog({dealId:dealId,fromStage:fromStage,toStage:toStage,phase:'commit:rollback'});
+      return false;
+    }
+    notify('Deal moved to '+toStage);
+    debugDnDLog({dealId:dealId,fromStage:fromStage,toStage:toStage,phase:'commit:ok'});
+    return true;
+  }
+  disposeKanbanSortables();
   var $k = $('#kanbanView').empty();
   var row = $('<div class="kanban-row"></div>').appendTo($k);
   AppState.pipelineStages.forEach(function(stage){
@@ -582,9 +615,37 @@ function renderKanban(){
         (stats.stale?'<div class="activity-chip warn-chip">No touch 14d+</div>':'');
       body.append('<div class="deal-card" data-id="'+d.id+'"><div>'+d.title+'</div><div class="info-row">'+d.contact+'</div><div class="deal-value">'+formatCurrency(d.value)+'</div>'+chips+'</div>');
     });
-    body.dxSortable({group:'deals',filter:'.deal-card',itemOrientation:'vertical',onAdd:function(e){
-      AppState.moveDealToStage(Number($(e.itemElement).data('id')),stage); notify('Deal moved to '+stage); renderKanban(); refreshInsights();
-    }});
+    body.dxSortable({
+      group:'deals',
+      data:{stage:stage},
+      filter:'.deal-card',
+      itemOrientation:'vertical',
+      moveItemOnDrop:true,
+      onDragStart:function(){
+        removeKanbanPlaceholders();
+      },
+      onRemove:function(e){
+        var dealId = Number($(e.itemElement).data('id'));
+        var fromStage = e.fromData && e.fromData.stage;
+        var toStage = e.toData && e.toData.stage;
+        debugDnDLog({dealId:dealId,fromStage:fromStage,toStage:toStage,phase:'remove'});
+        removeKanbanPlaceholders();
+      },
+      onAdd:function(e){
+        var dealId = Number($(e.itemElement).data('id'));
+        var fromStage = e.fromData && e.fromData.stage;
+        var toStage = e.toData && e.toData.stage;
+        debugDnDLog({dealId:dealId,fromStage:fromStage,toStage:toStage,phase:'add'});
+        var updated = commitKanbanStageMove(dealId,fromStage,toStage);
+        renderKanban();
+        if(updated){ refreshInsights(); }
+      },
+      onReorder:function(e){
+        var dealId = Number($(e.itemElement).data('id'));
+        var stageName = e.toData && e.toData.stage;
+        debugDnDLog({dealId:dealId,fromStage:stageName,toStage:stageName,phase:'reorder'});
+      }
+    });
   });
   $('.deal-card').on('click',function(){AppState.selectDeal(Number($(this).data('id')));});
 }
