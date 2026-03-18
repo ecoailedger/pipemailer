@@ -14,6 +14,37 @@ function buildThreadMessages(email) {
   return [{ from: email.from || 'Unknown sender', at: email.date || new Date().toISOString(), body: email.body || '' }];
 }
 
+function normalizeSubject(subject) {
+  return String(subject || '')
+    .toLowerCase()
+    .replace(/^(re|fw|fwd):\s*/g, '')
+    .trim();
+}
+
+function buildThreadKey(email) {
+  const byDeal = email.dealId ? `deal:${email.dealId}` : null;
+  const byParticipants = [email.from, email.to].filter(Boolean).sort().join('|');
+  const bySubject = normalizeSubject(email.subject || '(no subject)');
+  return byDeal || `${byParticipants}::${bySubject}`;
+}
+
+function appendReplyToRelatedThread(state, sourceEmail, outboundMessage) {
+  const sourceThread = Array.isArray(sourceEmail.thread) ? sourceEmail.thread : buildThreadMessages(sourceEmail);
+  const nextThread = sourceThread.concat([outboundMessage]);
+  const sourceKey = buildThreadKey(sourceEmail);
+
+  state.emails.forEach((item) => {
+    if (item.id === sourceEmail.id || buildThreadKey(item) === sourceKey) {
+      item.thread = nextThread.slice();
+      item.isRead = true;
+    }
+  });
+
+  sourceEmail.thread = nextThread.slice();
+  sourceEmail.isRead = true;
+  return nextThread;
+}
+
 function ensureWidgetReinit($el, widgetName) {
   if (!$el.length) return;
   const instance = $el[widgetName]('instance');
@@ -48,7 +79,62 @@ function initializeThreadTab(state, deps) {
 
   ['#replyBtn', '#replyAllBtn', '#archiveBtn', '#sendReply'].forEach((selector) => ensureWidgetReinit($(selector), 'dxButton'));
   ['#replyToField', '#replyCcField', '#replySubjectField'].forEach((selector) => ensureWidgetReinit($(selector), 'dxTextBox'));
+  ensureWidgetReinit($('#messageDetailsAccordion'), 'dxAccordion');
+  ensureWidgetReinit($('#emailDealSelector'), 'dxSelectBox');
+  ensureWidgetReinit($('#emailStageSelector'), 'dxSelectBox');
   ensureWidgetReinit($('#replyArea'), 'dxTextArea');
+
+  const metadataRows = [
+    ['From', email.from || 'Unknown sender'],
+    ['To', email.to || '—'],
+    ['Cc', email.cc || '—'],
+    ['Date', formatDate(email.date)],
+    ['Linked deal', email.dealId ? (state.deals.find((d) => d.id === email.dealId)?.title || `Deal #${email.dealId}`) : 'Not linked']
+  ];
+  const metaHtml = `<div class="thread-meta">${metadataRows.map(([label, value]) => `<div class="thread-meta-row"><strong>${escapeHtml(label)}</strong><span>${escapeHtml(value)}</span></div>`).join('')}</div>`;
+  const fullBody = (email.body || threadMessages[threadMessages.length - 1]?.body || '').trim();
+  $('#messageDetailsAccordion').dxAccordion({
+    dataSource: [
+      { title: 'Email details', content: metaHtml },
+      { title: 'Full message body', content: `<div class="email-body-full">${escapeHtml(fullBody || '(No message body)')}</div>` }
+    ],
+    multiple: true,
+    collapsible: true,
+    itemTitleTemplate: (item) => item.title,
+    itemTemplate: (item) => `<div>${item.content}</div>`
+  });
+
+  $('#emailDealSelector').dxSelectBox({
+    dataSource: state.deals,
+    displayExpr: 'title',
+    valueExpr: 'id',
+    value: email.dealId || null,
+    showClearButton: true,
+    searchEnabled: true,
+    label: 'Linked Pipedrive deal',
+    labelMode: 'floating',
+    placeholder: 'Attach this thread to a deal',
+    onValueChanged: (ev) => {
+      email.dealId = ev.value || null;
+      const stageSelector = $('#emailStageSelector').dxSelectBox('instance');
+      const linkedDeal = ev.value ? state.deals.find((d) => d.id === ev.value) : null;
+      stageSelector?.option({
+        disabled: !linkedDeal,
+        value: linkedDeal ? linkedDeal.stage : null
+      });
+    }
+  });
+  $('#emailStageSelector').dxSelectBox({
+    dataSource: state.pipelineStages,
+    value: (email.dealId && state.deals.find((d) => d.id === email.dealId)?.stage) || null,
+    label: 'Deal stage',
+    labelMode: 'floating',
+    placeholder: 'Pick a stage',
+    disabled: !email.dealId,
+    onValueChanged: (ev) => {
+      if (ev.value) state.updateEmailDealStage(email.id, ev.value);
+    }
+  });
 
   $('#replyToField').dxTextBox({ label: 'To', labelMode: 'floating', value: email.from || '' });
   $('#replyCcField').dxTextBox({ label: 'Cc', labelMode: 'floating', value: '' });
@@ -93,8 +179,9 @@ function initializeThreadTab(state, deps) {
       if (!body) { notify('Reply body cannot be empty', 'warning'); return; }
       const now = new Date().toISOString();
       const outbound = { from: 'You', at: now, body };
-      email.thread = (Array.isArray(email.thread) ? email.thread : buildThreadMessages(email)).concat([outbound]);
-      email.isRead = true;
+      const nextThread = appendReplyToRelatedThread(state, email, outbound);
+      const selectedDealId = $('#emailDealSelector').dxSelectBox('instance')?.option('value') || email.dealId || null;
+      email.dealId = selectedDealId;
       state.emails.unshift({
         id: Date.now(),
         folder: 'sent',
@@ -106,12 +193,18 @@ function initializeThreadTab(state, deps) {
         date: now,
         isRead: true,
         isStarred: false,
-        dealId: email.dealId || null,
+        dealId: selectedDealId,
         body,
-        thread: email.thread.slice()
+        thread: nextThread.slice()
       });
+      if (selectedDealId) {
+        const deal = state.deals.find((d) => d.id === selectedDealId);
+        if (deal) {
+          deal.notes.unshift(`📧 ${formatDate(now)} · Reply sent: ${subject || defaultSubject} — ${body}`);
+        }
+      }
       renderApp();
-      notify('Reply sent');
+      notify(selectedDealId ? 'Reply sent and logged to thread + linked deal' : 'Reply sent and logged to thread');
     }
   });
 }
