@@ -75,6 +75,19 @@ export default function App() {
     returnCaseByEmailId
   ]);
 
+  const dealApprovalStatusById = useMemo(() => {
+    const statusWeight = { none: 0, rejected: 1, approved: 2, required: 3 };
+    return state.emails.reduce((lookup, email) => {
+      if (!email.dealId) return lookup;
+      const nextStatus = email.approvalStatus ?? 'none';
+      const prevStatus = lookup[email.dealId] ?? 'none';
+      if (statusWeight[nextStatus] > statusWeight[prevStatus]) {
+        lookup[email.dealId] = nextStatus;
+      }
+      return lookup;
+    }, {});
+  }, [state.emails]);
+
   const queueCounts = useMemo(() => {
     const inboxEmails = state.emails.filter((email) => email.folder === state.selectedFolder);
     return {
@@ -91,11 +104,14 @@ export default function App() {
   }, [normalizedSearchQuery, state.deals, state.view]);
 
   const filteredDeals = useMemo(() => {
-    return searchableDeals.filter((deal) => {
+    return searchableDeals.map((deal) => ({
+      ...deal,
+      approvalStatus: deal.approvalStatus ?? dealApprovalStatusById[deal.id] ?? 'none'
+    })).filter((deal) => {
       if (state.selectedStage && deal.stage !== state.selectedStage) return false;
       return true;
     });
-  }, [searchableDeals, state.selectedStage]);
+  }, [dealApprovalStatusById, searchableDeals, state.selectedStage]);
 
   const selectedEmail = useMemo(
     () => emailsWithSla.find((email) => email.id === state.selectedEmailId) ?? null,
@@ -204,6 +220,11 @@ export default function App() {
               macroTemplates={state.macroTemplates}
               onUseMacro={({ templateId, emailId }) => actions.trackMacroUsage({ templateId, emailId })}
               onAssign={actions.reassignEmail}
+              actorName={assigneeLookup[state.currentUserId] ?? 'Internal user'}
+              onAddInternalNote={actions.addInternalNote}
+              onRequestApproval={actions.requestApproval}
+              onApprove={actions.approveRequest}
+              onReject={actions.rejectRequest}
             />
           </section>
         }

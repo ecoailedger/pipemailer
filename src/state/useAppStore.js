@@ -30,6 +30,35 @@ function createMacroTemplate(template, fallbackIndex = 0) {
 }
 
 function reducer(state, action) {
+  const buildTimelineEvent = (event) => ({
+    id: event.id || `evt-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+    type: event.type || 'public-message',
+    visibility: event.visibility || 'public',
+    actorId: event.actorId ?? null,
+    actorName: event.actorName || 'System',
+    timestamp: event.timestamp || new Date().toISOString(),
+    body: event.body || '',
+    status: event.status || 'logged',
+    locked: event.locked ?? false,
+    metadata: event.metadata ?? {}
+  });
+
+  const buildPublicEventsFromThread = (email) =>
+    (email.thread ?? []).map((message, index) =>
+      buildTimelineEvent({
+        id: `thread-${email.id}-${index}`,
+        type: 'public-message',
+        visibility: 'public',
+        actorName: message.from,
+        timestamp: message.at,
+        body: message.body,
+        status: 'sent',
+        locked: true
+      })
+    );
+
+  const getEmailTimeline = (email) => email.activityTimeline ?? buildPublicEventsFromThread(email);
+
   const withAssignment = (email, assigneeId) => {
     const assignedAt = assigneeId ? new Date().toISOString() : null;
     return {
@@ -95,6 +124,18 @@ function reducer(state, action) {
             dealId: state.selectedDealId,
             body: action.payload.body,
             thread: [{ from: 'You', at: now, body: action.payload.body }],
+            activityTimeline: [
+              buildTimelineEvent({
+                type: 'public-message',
+                visibility: 'public',
+                actorId: state.currentUserId,
+                actorName: 'You',
+                timestamp: now,
+                body: action.payload.body,
+                status: 'sent',
+                locked: true
+              })
+            ],
             assigneeId: state.currentUserId,
             assignedAt: now,
             assignmentHistory: [{ assigneeId: state.currentUserId, assignedAt: now }],
@@ -237,6 +278,18 @@ function reducer(state, action) {
             dealId: resolvedDealId,
             body: cleanBody,
             thread: [outboundMessage],
+            activityTimeline: [
+              buildTimelineEvent({
+                type: 'public-message',
+                visibility: 'public',
+                actorId: state.currentUserId,
+                actorName: 'You',
+                timestamp: now,
+                body: cleanBody,
+                status: 'sent',
+                locked: true
+              })
+            ],
             assigneeId: sourceEmail.assigneeId ?? state.currentUserId,
             assignedAt: sourceEmail.assignedAt ?? now,
             assignmentHistory: sourceEmail.assignmentHistory ?? [],
@@ -251,7 +304,20 @@ function reducer(state, action) {
               ? {
                   ...email,
                   dealId: resolvedDealId,
-                  thread: [...(email.thread ?? []), outboundMessage]
+                  thread: [...(email.thread ?? []), outboundMessage],
+                  activityTimeline: [
+                    ...getEmailTimeline(email),
+                    buildTimelineEvent({
+                      type: 'public-message',
+                      visibility: 'public',
+                      actorId: state.currentUserId,
+                      actorName: 'You',
+                      timestamp: now,
+                      body: cleanBody,
+                      status: 'sent',
+                      locked: true
+                    })
+                  ]
                 }
               : email
           )
@@ -415,6 +481,124 @@ function reducer(state, action) {
         macroUsageLog: [usageEvent, ...state.macroUsageLog]
       };
     }
+    case 'addInternalNote': {
+      const { emailId, note = '', actorId = state.currentUserId, actorName = 'Internal user' } = action.payload ?? {};
+      if (!emailId || !String(note).trim()) return state;
+      const timestamp = new Date().toISOString();
+
+      return {
+        ...state,
+        emails: state.emails.map((email) =>
+          email.id === emailId
+            ? {
+                ...email,
+                activityTimeline: [
+                  ...getEmailTimeline(email),
+                  buildTimelineEvent({
+                    type: 'internal-note',
+                    visibility: 'internal',
+                    actorId,
+                    actorName,
+                    timestamp,
+                    body: String(note).trim(),
+                    status: 'recorded',
+                    locked: true
+                  })
+                ]
+              }
+            : email
+        )
+      };
+    }
+    case 'requestApproval': {
+      const { emailId, summary = '', actorId = state.currentUserId, actorName = 'Internal user' } = action.payload ?? {};
+      if (!emailId) return state;
+      const timestamp = new Date().toISOString();
+
+      return {
+        ...state,
+        emails: state.emails.map((email) => {
+          if (email.id !== emailId) return email;
+          return {
+            ...email,
+            approvalStatus: 'required',
+            approvalRequestedAt: timestamp,
+            activityTimeline: [
+              ...getEmailTimeline(email),
+              buildTimelineEvent({
+                type: 'approval-requested',
+                visibility: 'internal',
+                actorId,
+                actorName,
+                timestamp,
+                body: String(summary).trim() || 'Approval requested.',
+                status: 'required',
+                locked: true
+              })
+            ]
+          };
+        }),
+        deals: state.deals.map((deal) =>
+          deal.id === (state.emails.find((email) => email.id === emailId)?.dealId ?? null)
+            ? { ...deal, approvalStatus: 'required', approvalRequestedAt: timestamp }
+            : deal
+        )
+      };
+    }
+    case 'resolveApproval': {
+      const { emailId, approved, comment = '', actorId = state.currentUserId, actorName = 'Internal approver' } = action.payload ?? {};
+      if (!emailId || typeof approved !== 'boolean') return state;
+      const timestamp = new Date().toISOString();
+      const nextStatus = approved ? 'approved' : 'rejected';
+
+      return {
+        ...state,
+        emails: state.emails.map((email) => {
+          if (email.id !== emailId) return email;
+          return {
+            ...email,
+            approvalStatus: nextStatus,
+            approvalResolvedAt: timestamp,
+            activityTimeline: [
+              ...getEmailTimeline(email),
+              buildTimelineEvent({
+                type: approved ? 'approval-approved' : 'approval-rejected',
+                visibility: 'internal',
+                actorId,
+                actorName,
+                timestamp,
+                body: String(comment).trim() || (approved ? 'Approval granted.' : 'Approval rejected.'),
+                status: nextStatus,
+                locked: true
+              })
+            ]
+          };
+        }),
+        deals: state.deals.map((deal) =>
+          deal.id === (state.emails.find((email) => email.id === emailId)?.dealId ?? null)
+            ? { ...deal, approvalStatus: nextStatus, approvalResolvedAt: timestamp }
+            : deal
+        )
+      };
+    }
+    case 'editTimelineEvent': {
+      const { emailId, eventId, body } = action.payload ?? {};
+      if (!emailId || !eventId) return state;
+      return {
+        ...state,
+        emails: state.emails.map((email) => {
+          if (email.id !== emailId) return email;
+          return {
+            ...email,
+            activityTimeline: getEmailTimeline(email).map((event) =>
+              event.id === eventId && !event.locked
+                ? { ...event, body: String(body ?? '').trim() }
+                : event
+            )
+          };
+        })
+      };
+    }
     case 'showToast':
       return { ...state, toast: { visible: true, message: action.payload } };
     case 'hideToast':
@@ -456,6 +640,11 @@ export function useAppStore() {
       updateEmailPriority: (payload) => dispatch({ type: 'updateEmailPriority', payload }),
       escalateSlaBreach: (payload) => dispatch({ type: 'escalateSlaBreach', payload }),
       bulkEscalateSlaBreaches: (payload) => dispatch({ type: 'bulkEscalateSlaBreaches', payload }),
+      addInternalNote: (payload) => dispatch({ type: 'addInternalNote', payload }),
+      requestApproval: (payload) => dispatch({ type: 'requestApproval', payload }),
+      approveRequest: (payload) => dispatch({ type: 'resolveApproval', payload: { ...payload, approved: true } }),
+      rejectRequest: (payload) => dispatch({ type: 'resolveApproval', payload: { ...payload, approved: false } }),
+      editTimelineEvent: (payload) => dispatch({ type: 'editTimelineEvent', payload }),
       createMacroTemplate: (payload) => dispatch({ type: 'createMacroTemplate', payload }),
       updateMacroTemplate: (payload) => dispatch({ type: 'updateMacroTemplate', payload }),
       archiveMacroTemplate: (payload) => dispatch({ type: 'archiveMacroTemplate', payload }),

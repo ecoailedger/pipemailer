@@ -91,6 +91,72 @@ function createThread(email, rng, sentAt) {
   return thread;
 }
 
+function createActivityTimeline(email, thread, rng, sentAt) {
+  const timeline = thread.map((message, index) => ({
+    id: `thread-${email.id}-${index}`,
+    type: 'public-message',
+    visibility: 'public',
+    actorId: message.from === 'You' ? 'u-alex' : null,
+    actorName: message.from,
+    timestamp: message.at,
+    body: message.body,
+    status: 'sent',
+    locked: true,
+    metadata: {}
+  }));
+
+  if (email.folder !== 'inbox' || rng() < 0.55) return timeline;
+
+  const noteAt = new Date(sentAt.getTime() + 30 * 60 * 1000).toISOString();
+  timeline.push({
+    id: `internal-${email.id}`,
+    type: 'internal-note',
+    visibility: 'internal',
+    actorId: 'u-jordan',
+    actorName: 'Jordan Lee',
+    timestamp: noteAt,
+    body: 'Flagged for policy review before external response.',
+    status: 'recorded',
+    locked: true,
+    metadata: {}
+  });
+
+  if (rng() < 0.5) {
+    const requestAt = new Date(sentAt.getTime() + 60 * 60 * 1000).toISOString();
+    const isResolved = rng() < 0.45;
+    timeline.push({
+      id: `approval-request-${email.id}`,
+      type: 'approval-requested',
+      visibility: 'internal',
+      actorId: 'u-jordan',
+      actorName: 'Jordan Lee',
+      timestamp: requestAt,
+      body: 'Requesting manager approval for exception handling.',
+      status: isResolved ? 'approved' : 'required',
+      locked: true,
+      metadata: {}
+    });
+
+    if (isResolved) {
+      const approved = rng() < 0.7;
+      timeline.push({
+        id: `approval-resolution-${email.id}`,
+        type: approved ? 'approval-approved' : 'approval-rejected',
+        visibility: 'internal',
+        actorId: 'u-taylor',
+        actorName: 'Taylor Brooks',
+        timestamp: new Date(sentAt.getTime() + 90 * 60 * 1000).toISOString(),
+        body: approved ? 'Approved to proceed with customer response.' : 'Rejected. Need more order details first.',
+        status: approved ? 'approved' : 'rejected',
+        locked: true,
+        metadata: {}
+      });
+    }
+  }
+
+  return timeline;
+}
+
 
 function buildSlaFields(rng, sentAt, isSentOrDraft) {
   const priority = pick(rng, ['low', 'medium', 'high', 'urgent']);
@@ -196,12 +262,20 @@ export function buildMockEmails(count, seed) {
       dealId: linkedDealId,
       body: `This is deterministic mock email #${id} for ${subject.toLowerCase()}.`,
       thread: createThread({ from: isSentOrDraft ? person : 'You', subject }, rng, sentAt),
+      approvalStatus: 'none',
       ...maybeAssign(rng, sentAt),
       ...buildSlaFields(rng, sentAt, isSentOrDraft)
     };
 
     if (!isSentOrDraft) {
       email.thread = createThread(email, rng, sentAt);
+    }
+    email.activityTimeline = createActivityTimeline(email, email.thread, rng, sentAt);
+    const latestApprovalEvent = [...email.activityTimeline]
+      .reverse()
+      .find((event) => event.type?.startsWith('approval-'));
+    if (latestApprovalEvent) {
+      email.approvalStatus = latestApprovalEvent.status || 'required';
     }
 
     return email;

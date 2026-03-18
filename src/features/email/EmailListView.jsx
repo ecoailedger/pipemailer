@@ -15,9 +15,15 @@ const SLA_LABELS = {
   breached: 'Breached'
 };
 
+const APPROVAL_LABELS = {
+  required: 'Approval required',
+  approved: 'Approved',
+  rejected: 'Rejected'
+};
+
 /**
  * @param {{
- *  emails: Array<{id:number,from:string,subject:string,snippet:string,date:string,isRead?:boolean,assigneeId?:string|null,priority?:string,computedSlaStatus?:string}>,
+ *  emails: Array<{id:number,from:string,subject:string,snippet:string,date:string,isRead?:boolean,assigneeId?:string|null,priority?:string,computedSlaStatus?:string,approvalStatus?:string}>,
  *  selectedEmailId: number | null,
  *  assignees: Array<{id:string,name:string}>,
  *  selectedAssigneeFilter: string,
@@ -81,6 +87,11 @@ export default function EmailListView({
                 <span className="assignment-chip">{resolveAssigneeName(email.assigneeId)}</span>
                 <span className={`sla-badge priority-${email.priority ?? 'medium'}`}>{PRIORITY_LABELS[email.priority] ?? 'Medium'}</span>
                 <span className={`sla-badge status-${slaStatus}`}>{SLA_LABELS[slaStatus] ?? 'On track'}</span>
+                {email.approvalStatus && email.approvalStatus !== 'none' ? (
+                  <span className={`sla-badge approval-${email.approvalStatus}`}>
+                    {APPROVAL_LABELS[email.approvalStatus] ?? 'Approval'}
+                  </span>
+                ) : null}
               </div>
             </div>
           );
