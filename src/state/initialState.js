@@ -1,38 +1,17 @@
-export const initialDeals = [
-  { id: 1, title: 'Acme Renewal 2026', contact: 'Maya Patel · Acme Ltd', value: 42000, stage: 'Leads', probability: 20, days: 4, notes: ['Initial discovery call complete'] },
-  { id: 2, title: 'Nimbus Security Upgrade', contact: 'Liam Chen · Nimbus AG', value: 75000, stage: 'Qualified', probability: 50, days: 7, notes: ['Technical scoping shared'] },
-  { id: 3, title: 'Orbit BI Expansion', contact: 'Sara Gomez · Orbit Labs', value: 118000, stage: 'Proposal', probability: 70, days: 10, notes: ['Proposal sent last week'] },
-  { id: 4, title: 'Vertex Pilot', contact: 'Noah Williams · Vertex Co', value: 26000, stage: 'Won', probability: 100, days: 2, notes: ['Signed and kickoff booked'] },
-  { id: 5, title: 'Helios Analytics Suite', contact: 'Ava Johnson · Helios Inc', value: 56000, stage: 'Leads', probability: 25, days: 5, notes: ['Awaiting discovery call slots'] },
-  { id: 6, title: 'BlueHarbor Migration', contact: 'Ethan Brooks · BlueHarbor', value: 91000, stage: 'Qualified', probability: 55, days: 8, notes: ['Security packet accepted'] },
-  { id: 7, title: 'Northwind Expansion', contact: 'Olivia Reed · Northwind', value: 133000, stage: 'Negotiation', probability: 72, days: 11, notes: ['Procurement reviewing final terms'] },
-  { id: 8, title: 'Stonegate Compliance Program', contact: 'Mason Clark · Stonegate', value: 47000, stage: 'Won', probability: 100, days: 3, notes: ['Project handoff complete'] },
-  { id: 9, title: 'Crestview Replatform', contact: 'Emma Davis · Crestview', value: 68000, stage: 'Lost', probability: 0, days: 14, notes: ['Budget moved to next quarter'] },
-  { id: 10, title: 'Redwood Support Retainer', contact: 'James Hall · Redwood', value: 31000, stage: 'Lost', probability: 0, days: 9, notes: ['Chose incumbent vendor'] }
-];
+import { buildMockDeals, buildMockEmails, MOCK_PIPELINE_STAGES } from './mockDataFactory';
 
-export const initialEmails = [
-  { id: 101, folder: 'inbox', from: 'Maya Patel', to: 'sales@pipemailer.local', cc: 'ops@pipemailer.local', subject: 'Q4 rollout timeline', snippet: 'Can we align on a phased release for November?', date: '2026-03-18 09:02', isRead: false, isStarred: true, dealId: 2, body: 'Hi team, can we align on a phased release for November rollout? Thanks!', thread: [{ from: 'Maya Patel', at: '2026-03-18 09:02', body: 'Can we align on a phased release for November rollout?' }, { from: 'You', at: '2026-03-18 09:20', body: 'Yes, sharing a milestone draft by EOD.' }] },
-  { id: 102, folder: 'inbox', from: 'Liam Chen', to: 'sales@pipemailer.local', cc: '', subject: 'Contract redlines attached', snippet: 'Please see legal comments, mostly payment terms.', date: '2026-03-18 08:14', isRead: true, isStarred: false, dealId: 3, body: 'Please see legal comments, mostly payment terms and SLA.', thread: [{ from: 'Liam Chen', at: '2026-03-17 18:40', body: 'Attached legal comments for review.' }, { from: 'You', at: '2026-03-17 19:08', body: 'Received, looping in legal lead.' }, { from: 'Liam Chen', at: '2026-03-18 08:14', body: 'Thanks, can you confirm turnaround by Friday?' }] },
-  { id: 103, folder: 'inbox', from: 'Sara Gomez', to: 'sales@pipemailer.local', cc: '', subject: 'Kickoff notes', snippet: 'Great meeting today. Sharing notes and actions.', date: '2026-03-17 16:31', isRead: false, isStarred: false, dealId: 1, body: 'Great meeting today. Sharing notes and action items for next step.', thread: [{ from: 'Sara Gomez', at: '2026-03-17 16:31', body: 'Great meeting today. Sharing notes and action items for next step.' }] },
-  { id: 104, folder: 'inbox', from: 'Noah Williams', to: 'sales@pipemailer.local', cc: '', subject: 'Security questionnaire follow-up', snippet: 'Can you resend section 4 in editable format?', date: '2026-03-17 13:11', isRead: false, isStarred: false, dealId: 6, body: 'Can you resend section 4 in editable format?', thread: [{ from: 'Noah Williams', at: '2026-03-17 13:11', body: 'Can you resend section 4 in editable format?' }] },
-  { id: 105, folder: 'inbox', from: 'Ava Johnson', to: 'sales@pipemailer.local', cc: 'finance@pipemailer.local', subject: 'Budget sign-off timing', snippet: 'Finance review is tomorrow afternoon.', date: '2026-03-17 11:03', isRead: true, isStarred: true, dealId: 5, body: 'Finance review is tomorrow afternoon, then we can sign off.', thread: [{ from: 'Ava Johnson', at: '2026-03-17 11:03', body: 'Finance review is tomorrow afternoon.' }] },
-  { id: 106, folder: 'inbox', from: 'Ethan Brooks', to: 'sales@pipemailer.local', cc: '', subject: 'Migration plan version 2', snippet: 'Updated timeline and rollback strategy included.', date: '2026-03-17 10:12', isRead: false, isStarred: false, dealId: 6, body: 'Updated timeline and rollback strategy included.', thread: [{ from: 'Ethan Brooks', at: '2026-03-17 10:12', body: 'Updated timeline and rollback strategy included.' }] },
-  { id: 107, folder: 'inbox', from: 'Olivia Reed', to: 'sales@pipemailer.local', cc: 'legal@pipemailer.local', subject: 'NDA clause clarification', snippet: 'Clause 7.2 needs revised wording.', date: '2026-03-16 19:04', isRead: true, isStarred: false, dealId: 7, body: 'Clause 7.2 needs revised wording before signature.', thread: [{ from: 'Olivia Reed', at: '2026-03-16 19:04', body: 'Clause 7.2 needs revised wording before signature.' }] },
-  { id: 108, folder: 'inbox', from: 'Mason Clark', to: 'sales@pipemailer.local', cc: '', subject: 'Pilot success metrics', snippet: 'Sharing dashboard screenshot and adoption data.', date: '2026-03-16 17:42', isRead: false, isStarred: false, dealId: 8, body: 'Sharing dashboard screenshot and adoption data.', thread: [{ from: 'Mason Clark', at: '2026-03-16 17:42', body: 'Sharing dashboard screenshot and adoption data.' }] },
-  { id: 109, folder: 'inbox', from: 'Emma Davis', to: 'sales@pipemailer.local', cc: '', subject: 'Replatform stakeholder map', snippet: 'Added CIO and procurement lead contacts.', date: '2026-03-16 15:16', isRead: true, isStarred: false, dealId: 9, body: 'Added CIO and procurement lead contacts.', thread: [{ from: 'Emma Davis', at: '2026-03-16 15:16', body: 'Added CIO and procurement lead contacts.' }] },
-  { id: 110, folder: 'inbox', from: 'James Hall', to: 'sales@pipemailer.local', cc: '', subject: 'Support retainer questions', snippet: 'Need clarity on response time SLA tiers.', date: '2026-03-16 12:24', isRead: false, isStarred: true, dealId: 10, body: 'Need clarity on response time SLA tiers.', thread: [{ from: 'James Hall', at: '2026-03-16 12:24', body: 'Need clarity on response time SLA tiers.' }] },
-  { id: 111, folder: 'inbox', from: 'Priya Nair', to: 'sales@pipemailer.local', cc: '', subject: 'Reference customer call request', snippet: 'Do you have availability Thursday?', date: '2026-03-16 09:10', isRead: false, isStarred: false, dealId: null, body: 'Do you have availability Thursday for a reference call?', thread: [{ from: 'Priya Nair', at: '2026-03-16 09:10', body: 'Do you have availability Thursday for a reference call?' }] },
-  { id: 112, folder: 'inbox', from: 'Daniel Moore', to: 'sales@pipemailer.local', cc: '', subject: 'Updated procurement checklist', snippet: 'All required docs listed in attachment.', date: '2026-03-15 14:50', isRead: true, isStarred: false, dealId: 3, body: 'All required docs listed in attachment.', thread: [{ from: 'Daniel Moore', at: '2026-03-15 14:50', body: 'All required docs listed in attachment.' }] },
-  { id: 113, folder: 'sent', from: 'You', to: 'Maya Patel', cc: '', subject: 'Re: Q4 rollout timeline', snippet: 'Shared milestone draft and owners.', date: '2026-03-18 09:20', isRead: true, isStarred: false, dealId: 2, body: 'Shared milestone draft and owners.' },
-  { id: 114, folder: 'sent', from: 'You', to: 'Liam Chen', cc: 'legal@pipemailer.local', subject: 'Re: Contract redlines attached', snippet: 'Legal review started, ETA Thursday.', date: '2026-03-18 08:29', isRead: true, isStarred: false, dealId: 3, body: 'Legal review started, ETA Thursday.' },
-  { id: 115, folder: 'sent', from: 'You', to: 'Ethan Brooks', cc: '', subject: 'Re: Migration plan version 2', snippet: 'Rollback plan looks good with one update.', date: '2026-03-17 11:00', isRead: true, isStarred: false, dealId: 6, body: 'Rollback plan looks good with one update on comms.' },
-  { id: 116, folder: 'sent', from: 'You', to: 'Olivia Reed', cc: '', subject: 'Re: NDA clause clarification', snippet: 'Proposed wording attached for 7.2.', date: '2026-03-16 20:12', isRead: true, isStarred: false, dealId: 7, body: 'Proposed wording attached for 7.2.' },
-  { id: 117, folder: 'drafts', from: 'You', to: 'Emma Davis', cc: '', subject: 'Draft: Replatform pricing options', snippet: 'Two package options with phased terms.', date: '2026-03-15 10:45', isRead: true, isStarred: false, dealId: 9, body: 'Two package options with phased terms.' },
-  { id: 118, folder: 'drafts', from: 'You', to: 'Priya Nair', cc: '', subject: 'Draft: Reference customer intro', snippet: 'Draft intro message for customer call.', date: '2026-03-14 17:37', isRead: true, isStarred: false, dealId: null, body: 'Draft intro message for customer call.' }
-];
+const DEV_SEED = import.meta.env.VITE_MOCK_SEED ?? 'pipemailer-v1';
+const LARGE_DATASET = import.meta.env.VITE_LARGE_DATASET
+  ? import.meta.env.VITE_LARGE_DATASET === 'true'
+  : true;
 
-export const pipelineStages = ['Leads', 'Qualified', 'Proposal', 'Negotiation', 'Won', 'Lost'];
+const dealCount = LARGE_DATASET ? 80 : 12;
+const emailCount = LARGE_DATASET ? 250 : 24;
+
+export const initialDeals = buildMockDeals(dealCount, DEV_SEED);
+export const initialEmails = buildMockEmails(emailCount, DEV_SEED);
+
+export const pipelineStages = MOCK_PIPELINE_STAGES;
 
 export const initialState = {
   view: 'email',
