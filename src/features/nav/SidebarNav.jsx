@@ -2,6 +2,7 @@ import List from 'devextreme-react/list';
 
 /**
  * @param {{
+ *  view: 'email' | 'pipeline',
  *  selectedFolder: string,
  *  onSelectFolder: (folder: string) => void,
  *  onOpenPipeline: (stage?: string) => void,
@@ -9,7 +10,7 @@ import List from 'devextreme-react/list';
  *  pipelineStages: string[]
  * }} props
  */
-export default function SidebarNav({ selectedFolder, onSelectFolder, onOpenPipeline, folderCounts, pipelineStages }) {
+export default function SidebarNav({ view, selectedFolder, onSelectFolder, onOpenPipeline, folderCounts, pipelineStages }) {
   const folders = [
     { id: 'inbox', label: 'Inbox' },
     { id: 'sent', label: 'Sent' },
@@ -26,6 +27,7 @@ export default function SidebarNav({ selectedFolder, onSelectFolder, onOpenPipel
         keyExpr="id"
         selectionMode="single"
         selectedItemKeys={[selectedFolder]}
+        disabled={view === 'pipeline'}
         onSelectionChanged={(event) => {
           const folder = event.addedItems?.[0]?.id;
           if (folder) onSelectFolder(folder);

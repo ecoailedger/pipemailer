@@ -3,6 +3,9 @@ import TextBox from 'devextreme-react/text-box';
 
 /**
  * @param {{
+ *  view: 'email' | 'pipeline',
+ *  themeMode: 'light' | 'dark',
+ *  searchText: string,
  *  onCompose: () => void,
  *  onToggleTheme: () => void,
  *  onSearchChange: (value: string) => void,
@@ -11,6 +14,9 @@ import TextBox from 'devextreme-react/text-box';
  * }} props
  */
 export default function TopBar({
+  view,
+  themeMode,
+  searchText,
   onCompose,
   onToggleTheme,
   onSearchChange,
@@ -27,13 +33,19 @@ export default function TopBar({
         placeholder="Search emails"
         mode="search"
         stylingMode="filled"
+        value={searchText}
         onValueChanged={(e) => onSearchChange(e.value ?? '')}
       />
       <div className="top-actions">
-        <Button text="Email View" stylingMode="outlined" onClick={onSwitchToEmail} />
-        <Button text="Pipeline View" stylingMode="outlined" onClick={onSwitchToPipeline} />
+        <Button text="Email View" type={view === 'email' ? 'default' : 'normal'} stylingMode="outlined" onClick={onSwitchToEmail} />
+        <Button text="Pipeline View" type={view === 'pipeline' ? 'default' : 'normal'} stylingMode="outlined" onClick={onSwitchToPipeline} />
         <Button text="Add Email" type="default" stylingMode="contained" onClick={onCompose} />
-        <Button text="Theme" icon="contrast" stylingMode="outlined" onClick={onToggleTheme} />
+        <Button
+          text={themeMode === 'light' ? 'Dark' : 'Light'}
+          icon="contrast"
+          stylingMode="outlined"
+          onClick={onToggleTheme}
+        />
       </div>
     </header>
   );

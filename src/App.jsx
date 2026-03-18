@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import AppShell from './layout/AppShell';
-import TopBar from './features/topbar/TopBar';
-import SidebarNav from './features/nav/SidebarNav';
+import TopBar from './features/topbar/TopBar.jsx';
+import SidebarNav from './features/nav/SidebarNav.jsx';
 
 const SEED_EMAILS = [
   { id: 1, folder: 'inbox', from: 'Avery', subject: 'Kickoff notes', snippet: 'Shared notes and next steps from kickoff.' },
@@ -63,6 +63,9 @@ export default function App() {
       <AppShell
         topbar={
           <TopBar
+            view={view}
+            themeMode={themeMode}
+            searchText={searchText}
             onCompose={() => {}}
             onToggleTheme={() => setThemeMode((current) => (current === 'light' ? 'dark' : 'light'))}
             onSwitchToEmail={() => setView('email')}
@@ -72,10 +75,14 @@ export default function App() {
         }
         left={
           <SidebarNav
+            view={view}
             selectedFolder={selectedFolder}
             folderCounts={folderCounts}
             pipelineStages={pipelineStages}
-            onSelectFolder={setSelectedFolder}
+            onSelectFolder={(folder) => {
+              setSelectedFolder(folder);
+              setView('email');
+            }}
             onOpenPipeline={() => setView('pipeline')}
           />
         }
