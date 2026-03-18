@@ -1,17 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import AppShell from './layout/AppShell';
 import TopBar from './features/topbar/TopBar.jsx';
 import SidebarNav from './features/nav/SidebarNav.jsx';
-
-const SEED_EMAILS = [
-  { id: 1, folder: 'inbox', from: 'Avery', subject: 'Kickoff notes', snippet: 'Shared notes and next steps from kickoff.' },
-  { id: 2, folder: 'inbox', from: 'Morgan', subject: 'Pricing draft', snippet: 'Can you confirm assumptions before review?' },
-  { id: 3, folder: 'sent', from: 'You', subject: 'Re: Scope update', snippet: 'Thanks! I attached the latest scope version.' },
-  { id: 4, folder: 'drafts', from: 'You', subject: 'Follow-up plan', snippet: 'Drafting a follow-up for the legal thread.' },
-  { id: 5, folder: 'inbox', from: 'Jordan', subject: 'Timeline check', snippet: 'Do we still target launch in early May?' }
-];
-
-const SEED_PIPELINE_STAGES = ['Lead', 'Qualified', 'Proposal', 'Negotiation', 'Won'];
+import EmailListView from './features/email/EmailListView.jsx';
+import PipelineView from './features/pipeline/PipelineView.jsx';
+import RightPanel from './features/details/RightPanel.jsx';
+import { useAppStore } from './state/useAppStore';
 
 const themeVars = {
   light: {},
@@ -31,80 +25,110 @@ const themeVars = {
 };
 
 export default function App() {
-  const [view, setView] = useState('email');
-  const [searchText, setSearchText] = useState('');
-  const [selectedFolder, setSelectedFolder] = useState('inbox');
-  const [themeMode, setThemeMode] = useState('light');
+  const { state, actions } = useAppStore();
 
-  const emails = SEED_EMAILS;
-  const pipelineStages = SEED_PIPELINE_STAGES;
-
-  const folderCounts = useMemo(() => {
-    return emails.reduce(
-      (counts, email) => {
-        counts[email.folder] = (counts[email.folder] ?? 0) + 1;
-        return counts;
-      },
-      { inbox: 0, sent: 0, drafts: 0, archive: 0 }
-    );
-  }, [emails]);
+  const folderCounts = useMemo(
+    () =>
+      state.emails.reduce(
+        (counts, email) => {
+          counts[email.folder] = (counts[email.folder] ?? 0) + 1;
+          return counts;
+        },
+        { inbox: 0, sent: 0, drafts: 0, archive: 0 }
+      ),
+    [state.emails]
+  );
 
   const filteredEmails = useMemo(() => {
-    const normalized = searchText.trim().toLowerCase();
-    return emails.filter((email) => {
-      if (email.folder !== selectedFolder) return false;
+    const normalized = state.searchQuery.trim().toLowerCase();
+
+    return state.emails.filter((email) => {
+      if (email.folder !== state.selectedFolder) return false;
       if (!normalized) return true;
       return [email.from, email.subject, email.snippet].some((field) => field.toLowerCase().includes(normalized));
     });
-  }, [emails, searchText, selectedFolder]);
+  }, [state.emails, state.searchQuery, state.selectedFolder]);
+
+  const filteredDeals = useMemo(() => {
+    const normalized = state.searchQuery.trim().toLowerCase();
+
+    return state.deals.filter((deal) => {
+      if (state.selectedStage && deal.stage !== state.selectedStage) return false;
+      if (!normalized) return true;
+      return [deal.title, deal.contact, deal.stage].some((field) => field.toLowerCase().includes(normalized));
+    });
+  }, [state.deals, state.searchQuery, state.selectedStage]);
+
+  const selectedEmail = useMemo(
+    () => state.emails.find((email) => email.id === state.selectedEmailId) ?? null,
+    [state.emails, state.selectedEmailId]
+  );
+  const selectedDeal = useMemo(
+    () => state.deals.find((deal) => deal.id === state.selectedDealId) ?? null,
+    [state.deals, state.selectedDealId]
+  );
 
   return (
-    <div style={themeVars[themeMode]}>
+    <div style={themeVars[state.themeMode]}>
       <AppShell
         topbar={
           <TopBar
-            view={view}
-            themeMode={themeMode}
-            searchText={searchText}
-            onCompose={() => {}}
-            onToggleTheme={() => setThemeMode((current) => (current === 'light' ? 'dark' : 'light'))}
-            onSwitchToEmail={() => setView('email')}
-            onSwitchToPipeline={() => setView('pipeline')}
-            onSearchChange={setSearchText}
+            view={state.view}
+            themeMode={state.themeMode}
+            searchText={state.searchQuery}
+            onCompose={() => actions.setPopupOpen('compose', true)}
+            onToggleTheme={actions.toggleTheme}
+            onSwitchToEmail={() => actions.setView('email')}
+            onSwitchToPipeline={() => actions.setView('pipeline')}
+            onSearchChange={actions.setSearchQuery}
           />
         }
         left={
           <SidebarNav
-            view={view}
-            selectedFolder={selectedFolder}
+            view={state.view}
+            selectedFolder={state.selectedFolder}
             folderCounts={folderCounts}
-            pipelineStages={pipelineStages}
+            pipelineStages={state.pipelineStages}
             onSelectFolder={(folder) => {
-              setSelectedFolder(folder);
-              setView('email');
+              actions.setSelectedFolder(folder);
+              actions.setView('email');
             }}
-            onOpenPipeline={() => setView('pipeline')}
+            onOpenPipeline={(stage) => {
+              if (stage) {
+                actions.setSelectedStage(stage);
+                return;
+              }
+              actions.setView('pipeline');
+            }}
           />
         }
         main={
           <section className="p-4">
-            {view === 'email' ? (
-              <>
-                <h3 className="mb-2">Email View (Placeholder)</h3>
-                <div className="text-secondary text-sm">Showing {filteredEmails.length} email(s) in {selectedFolder}.</div>
-              </>
+            {state.view === 'email' ? (
+              <EmailListView
+                emails={filteredEmails}
+                selectedEmailId={state.selectedEmailId}
+                onSelectEmail={actions.selectEmail}
+              />
             ) : (
-              <>
-                <h3 className="mb-2">Pipeline View (Placeholder)</h3>
-                <div className="text-secondary text-sm">Stages: {pipelineStages.join(' • ')}</div>
-              </>
+              <PipelineView
+                deals={filteredDeals}
+                stages={state.pipelineStages}
+                selectedDealId={state.selectedDealId}
+                onSelectDeal={actions.selectDeal}
+              />
             )}
           </section>
         }
         right={
           <section className="p-4">
-            <h3 className="mb-2">Details Panel (Placeholder)</h3>
-            <div className="text-secondary text-sm">Select an email or pipeline item to view details here.</div>
+            <RightPanel
+              selectedEmail={selectedEmail}
+              selectedDeal={selectedDeal}
+              onCompose={() => actions.setPopupOpen('compose', true)}
+              onCreateDeal={() => actions.setPopupOpen('deal', true)}
+              onLinkEmail={() => actions.setPopupOpen('link', true)}
+            />
           </section>
         }
       />
