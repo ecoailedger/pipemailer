@@ -8,12 +8,16 @@ Keep `wrangler.jsonc` unchanged with:
 
 In Cloudflare project settings, use one of these command setups so `dist/` is created before deployment:
 
+In `package.json`, keep the deploy helper script as:
+
+- `"deploy:cf": "npm run build && test -d dist && npx wrangler deploy"`
+
 - **Build command:** `npm run build`
-- **Deploy command:** `npx wrangler deploy`
+- **Deploy command:** `npm run deploy:cf`
 
 If your Cloudflare UI only exposes a single deploy/build command field, use:
 
-- `npm run build && npx wrangler deploy`
+- `npm run deploy:cf`
 
 ### Expected deploy log checks
 
