@@ -4,6 +4,7 @@ import TopBar from './features/topbar/TopBar.jsx';
 import SidebarNav from './features/nav/SidebarNav.jsx';
 import EmailListView from './features/email/EmailListView.jsx';
 import PipelineView from './features/pipeline/PipelineView.jsx';
+import DashboardView from './features/dashboard/DashboardView.jsx';
 import RightPanel from './features/details/RightPanel.jsx';
 import ComposePopup from './features/popups/ComposePopup.jsx';
 import DealPopup from './features/popups/DealPopup.jsx';
@@ -83,6 +84,7 @@ export default function App() {
             onToggleTheme={actions.toggleTheme}
             onSwitchToEmail={() => actions.setView('email')}
             onSwitchToPipeline={() => actions.setView('pipeline')}
+            onSwitchToDashboard={() => actions.setView('dashboard')}
             onSearchChange={actions.setSearchQuery}
           />
         }
@@ -110,13 +112,15 @@ export default function App() {
                 selectedEmailId={state.selectedEmailId}
                 onSelectEmail={actions.selectEmail}
               />
-            ) : (
+            ) : state.view === 'pipeline' ? (
               <PipelineView
                 deals={filteredDeals}
                 stages={state.pipelineStages}
                 selectedDealId={state.selectedDealId}
                 onSelectDeal={actions.selectDeal}
               />
+            ) : (
+              <DashboardView deals={state.deals} emails={state.emails} pipelineStages={state.pipelineStages} />
             )}
           </section>
         }

@@ -13,7 +13,12 @@ export const initialEmails = buildMockEmails(emailCount, DEV_SEED);
 
 export const pipelineStages = MOCK_PIPELINE_STAGES;
 
+/**
+ * @typedef {'email' | 'pipeline' | 'dashboard'} AppView
+ */
+
 export const initialState = {
+  /** @type {AppView} */
   view: 'email',
   selectedEmailId: initialEmails[0]?.id ?? null,
   selectedDealId: initialEmails[0]?.dealId ?? null,

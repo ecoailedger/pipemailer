@@ -2,7 +2,7 @@ import List from 'devextreme-react/list';
 
 /**
  * @param {{
- *  view: 'email' | 'pipeline',
+ *  view: 'email' | 'pipeline' | 'dashboard',
  *  selectedFolder: string,
  *  onSelectFolder: (folder: string) => void,
  *  onOpenPipeline: (stage?: string | null) => void,
