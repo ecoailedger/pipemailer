@@ -7,6 +7,7 @@ import TextBox from 'devextreme-react/text-box';
  *  themeMode: 'light' | 'dark',
  *  searchText: string,
  *  onCompose: () => void,
+ *  onCreateDeal: () => void,
  *  onToggleTheme: () => void,
  *  onSearchChange: (value: string) => void,
  *  onSwitchToEmail: () => void,
@@ -19,6 +20,7 @@ export default function TopBar({
   themeMode,
   searchText,
   onCompose,
+  onCreateDeal,
   onToggleTheme,
   onSearchChange,
   onSwitchToEmail,
@@ -32,7 +34,7 @@ export default function TopBar({
       </div>
       <TextBox
         id="searchBox"
-        placeholder="Search emails and deals"
+        placeholder="Search emails, deals, RMA, order, SKU"
         mode="search"
         stylingMode="filled"
         value={searchText}
@@ -43,6 +45,7 @@ export default function TopBar({
         <Button text="Pipeline View" type={view === 'pipeline' ? 'default' : 'normal'} stylingMode="outlined" onClick={onSwitchToPipeline} />
         <Button text="Dashboard" type={view === 'dashboard' ? 'default' : 'normal'} stylingMode="outlined" onClick={onSwitchToDashboard} />
         <Button text="Add Email" type="default" stylingMode="contained" onClick={onCompose} />
+        <Button text="Add Deal / Return" stylingMode="outlined" onClick={onCreateDeal} />
         <Button
           text={themeMode === 'light' ? 'Dark' : 'Light'}
           icon="contrast"

@@ -11,6 +11,7 @@ import DealPopup from './features/popups/DealPopup.jsx';
 import LinkPopup from './features/popups/LinkPopup.jsx';
 import { useAppStore } from './state/useAppStore';
 import { buildDashboardMetrics, selectEmailsWithSla } from './features/dashboard/selectors';
+import { buildReturnCaseLookupByEmailId, matchesDealSearch, matchesEmailSearch } from './state/selectors';
 
 const themeVars = {
   light: {},
@@ -39,6 +40,7 @@ export default function App() {
   );
 
   const emailsWithSla = useMemo(() => selectEmailsWithSla(state.emails), [state.emails]);
+  const returnCaseByEmailId = useMemo(() => buildReturnCaseLookupByEmailId(state.returnCases), [state.returnCases]);
 
   const folderCounts = useMemo(
     () =>
@@ -59,10 +61,8 @@ export default function App() {
       if (state.selectedQueue === 'mine' && email.assigneeId !== state.currentUserId) return false;
       if (state.selectedQueue === 'team' && !state.teamAssigneeIds.includes(email.assigneeId)) return false;
       if (selectedAssigneeFilter !== 'all' && email.assigneeId !== selectedAssigneeFilter) return false;
-      if (!normalizedSearchQuery) return true;
-      return [email.from, email.subject, email.snippet].some((field) =>
-        field.toLowerCase().includes(normalizedSearchQuery)
-      );
+      const linkedReturnCase = returnCaseByEmailId[email.id] ?? null;
+      return matchesEmailSearch(email, normalizedSearchQuery, linkedReturnCase);
     });
   }, [
     normalizedSearchQuery,
@@ -71,7 +71,8 @@ export default function App() {
     emailsWithSla,
     state.selectedFolder,
     state.selectedQueue,
-    state.teamAssigneeIds
+    state.teamAssigneeIds,
+    returnCaseByEmailId
   ]);
 
   const queueCounts = useMemo(() => {
@@ -86,10 +87,7 @@ export default function App() {
 
   const searchableDeals = useMemo(() => {
     if (!normalizedSearchQuery || state.view === 'email') return state.deals;
-
-    return state.deals.filter((deal) => {
-      return [deal.title, deal.contact, deal.stage].some((field) => field.toLowerCase().includes(normalizedSearchQuery));
-    });
+    return state.deals.filter((deal) => matchesDealSearch(deal, normalizedSearchQuery));
   }, [normalizedSearchQuery, state.deals, state.view]);
 
   const filteredDeals = useMemo(() => {
@@ -107,6 +105,10 @@ export default function App() {
     () => state.deals.find((deal) => deal.id === state.selectedDealId) ?? null,
     [state.deals, state.selectedDealId]
   );
+  const selectedReturnCase = useMemo(() => {
+    if (!selectedEmail?.returnCaseId) return null;
+    return state.returnCases.find((item) => item.id === selectedEmail.returnCaseId) ?? null;
+  }, [selectedEmail, state.returnCases]);
 
   const dashboardMetrics = useMemo(
     () => buildDashboardMetrics(state.deals, emailsWithSla, state.pipelineStages),
@@ -122,6 +124,7 @@ export default function App() {
             themeMode={state.themeMode}
             searchText={state.searchQuery}
             onCompose={() => actions.setPopupOpen('compose', true)}
+            onCreateDeal={() => actions.setPopupOpen('deal', true)}
             onToggleTheme={actions.toggleTheme}
             onSwitchToEmail={() => actions.setView('email')}
             onSwitchToPipeline={() => actions.setView('pipeline')}
@@ -180,6 +183,7 @@ export default function App() {
             <RightPanel
               selectedEmail={selectedEmail}
               selectedDeal={selectedDeal}
+              selectedReturnCase={selectedReturnCase}
               deals={state.deals}
               draft={selectedEmail ? state.replyDrafts[selectedEmail.id] ?? null : null}
               onSetDraft={actions.setReplyDraft}
@@ -201,6 +205,7 @@ export default function App() {
       <DealPopup
         open={state.popups.deal}
         stages={state.pipelineStages}
+        defaultEmailId={state.selectedEmailId}
         onClose={() => actions.setPopupOpen('deal', false)}
         onSave={actions.saveDeal}
       />
