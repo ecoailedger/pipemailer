@@ -55,12 +55,14 @@
     .right-header { padding: 14px; border-bottom: 1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
     .empty-state { padding: 36px 26px; text-align:center; color: var(--text-secondary); }
     .thread-wrap { padding: 14px; }
-    .thread-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
-    .thread-meta { border: 1px solid var(--border); background: var(--bg-elevated); border-radius: var(--radius-md); padding: 10px; margin-bottom: 10px; font-size: 13px; color: var(--text-secondary); }
+    .panel-section-label { font: 500 12px var(--font-mono); color: var(--text-secondary); text-transform: uppercase; letter-spacing: .8px; margin: 0 0 8px; }
+    .thread-actions-row { display:flex; align-items:center; gap:8px; margin-bottom:14px; }
+    .thread-actions-primary { display:flex; flex-wrap:wrap; gap:8px; }
+    .thread-meta { border: 1px solid var(--border); background: var(--bg-elevated); border-radius: var(--radius-md); padding: 10px; margin-bottom: 14px; font-size: 13px; color: var(--text-secondary); }
     .thread-meta-row { display:flex; justify-content:space-between; margin-bottom:4px; }
     .thread-message { border:1px solid var(--border); background:var(--bg-elevated); border-radius:var(--radius-md); padding:10px; margin-bottom:10px; }
     .thread-message-head { display:flex; justify-content:space-between; margin-bottom:8px; font-size:12px; color:var(--text-secondary); }
-    .reply-composer { border:1px solid var(--border); background:var(--bg-surface); border-radius:var(--radius-md); padding:10px; margin-top:10px; }
+    .reply-composer { border:1px solid var(--border); background:var(--bg-surface); border-radius:var(--radius-md); padding:10px; margin-top:14px; }
 
     .activity-chip { display:inline-flex; align-items:center; gap:4px; font-size:11px; color:var(--text-secondary); background:var(--bg-elevated); border:1px solid var(--border); border-radius:999px; padding:2px 8px; margin-top:6px; margin-right:4px; }
     .timeline-filter-row { display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap; }
@@ -434,7 +436,7 @@ function renderRightPanel(){
         var em = AppState.emails.find(function(e){return e.id===AppState.selectedEmailId;});
         if(!em){ return '<div class="empty-state">Select an email to view details.</div>'; }
         var deal = AppState.deals.find(function(d){return d.id===em.dealId;});
-        if(item.title==='Thread') return '<div class="thread-wrap"><div class="thread-actions"><div id="replyBtn"></div><div id="replyAllBtn"></div><div id="forwardBtn"></div><div id="starBtn"></div><div id="archiveBtn"></div><div id="markReadToggleBtn"></div></div><div class="thread-meta"><div class="thread-meta-row"><strong>Subject</strong><span>'+em.subject+'</span></div><div class="thread-meta-row"><strong>From</strong><span>'+em.from+'</span></div><div class="thread-meta-row"><strong>To</strong><span>'+(em.to||'sales@pipemailer.local')+'</span></div><div class="thread-meta-row"><strong>CC</strong><span>'+(em.cc||'—')+'</span></div></div><div id="threadScroll" style="max-height:240px;"><div id="threadMessages"></div></div><div id="emailDealSelector" style="margin-top:10px"></div><div id="emailStageSelector" style="margin-top:10px"></div><div class="reply-composer"><div class="reply-title">Composer</div><div id="replyToField"></div><div id="replyCcField" style="margin-top:8px"></div><div id="replySubjectField" style="margin-top:8px"></div><div id="replyArea" style="margin-top:8px"></div><div id="sendReply" style="margin-top:10px"></div></div></div>';
+        if(item.title==='Thread') return '<div class="thread-wrap"><div class="panel-section-label">Actions</div><div class="thread-actions-row"><div class="thread-actions-primary"><div id="replyBtn"></div><div id="replyAllBtn"></div><div id="archiveBtn"></div></div><div id="threadOverflowBtn"></div></div><div id="messageDetailsAccordion"></div><div class="panel-section-label">Conversation</div><div id="threadScroll" style="max-height:240px;"><div id="threadMessages"></div></div><div id="emailDealSelector" style="margin-top:14px"></div><div id="emailStageSelector" style="margin-top:10px"></div><div class="reply-composer"><div class="panel-section-label">Composer</div><div id="replyToField"></div><div id="replyCcField" style="margin-top:8px"></div><div id="replySubjectField" style="margin-top:8px"></div><div id="replyArea" style="margin-top:8px"></div><div id="sendReply" style="margin-top:10px"></div></div></div>';
         if(item.title==='Deal') return deal
           ?'<div style="padding:12px"><h3>'+deal.title+'</h3><p>'+deal.contact+'</p><p class="deal-value">£'+deal.value.toLocaleString()+'</p><p><strong>Stage:</strong> '+deal.stage+'</p></div>'
           :'<div class="empty-state">No linked deal. Use the Thread tab to align this email to a deal.</div>';
@@ -517,15 +519,13 @@ function renderRightPanel(){
           setTimeout(function(){notify('Message sent');e.component.option('disabled',false);$('#sendLoadPanel').dxLoadPanel('instance').hide();},700);
           setTimeout(function(){notify('Message sent');e.component.option('disabled',false);},700);
         }});
+        var overflowActions = [
+          { id:'star', text:activeEmail && activeEmail.isStarred ? 'Unstar' : 'Star', icon:'favorite' },
+          { id:'read', text:activeEmail && activeEmail.isRead ? 'Unread' : 'Read', icon:'email' },
+          { id:'forward', text:'Forward', icon:'redo' }
+        ];
         $('#replyBtn').dxButton({text:'Reply',icon:'revert',stylingMode:'outlined',onClick:function(){AppState.composerMode='reply';renderRightPanel();}});
-        $('#replyAllBtn').dxButton({text:'Reply all',icon:'group',stylingMode:'outlined',onClick:function(){AppState.composerMode='replyAll';renderRightPanel();}});
-        $('#forwardBtn').dxButton({text:'Forward',icon:'redo',stylingMode:'outlined',onClick:function(){AppState.composerMode='forward';renderRightPanel();}});
-        $('#starBtn').dxButton({text:activeEmail && activeEmail.isStarred?'Unstar':'Star',icon:activeEmail && activeEmail.isStarred?'favorites':'favorite',stylingMode:'outlined',onClick:function(){
-          var starred = AppState.toggleEmailStar(activeEmail.id);
-          renderEmailList();
-          renderRightPanel();
-          notify(starred?'Email starred':'Star removed');
-        }});
+        $('#replyAllBtn').dxButton({text:'Reply all',icon:'revert',stylingMode:'outlined',onClick:function(){AppState.composerMode='replyAll';renderRightPanel();}});
         $('#archiveBtn').dxButton({text:'Archive',icon:'folder',stylingMode:'outlined',onClick:function(){
           AppState.archiveEmail(activeEmail.id);
           AppState.selectedEmailId = null;
@@ -534,14 +534,45 @@ function renderRightPanel(){
           refreshInsights();
           notify('Email archived');
         }});
-        $('#markReadToggleBtn').dxButton({text:activeEmail && activeEmail.isRead?'Mark unread':'Mark read',icon:'email',stylingMode:'outlined',onClick:function(){
-          var nextIsRead = !activeEmail.isRead;
-          AppState.markEmailRead(activeEmail.id,nextIsRead);
-          renderEmailList();
-          renderRightPanel();
-          refreshInsights();
-          notify(nextIsRead?'Marked read':'Marked unread');
-        }});
+        $('#threadOverflowBtn').dxDropDownButton({
+          icon:'overflow',
+          stylingMode:'outlined',
+          dropDownOptions:{ width:150 },
+          items:overflowActions,
+          displayExpr:'text',
+          keyExpr:'id',
+          onItemClick:function(ev){
+            if(ev.item.id==='forward'){
+              AppState.composerMode='forward';
+              renderRightPanel();
+              return;
+            }
+            if(ev.item.id==='star'){
+              var starred = AppState.toggleEmailStar(activeEmail.id);
+              renderEmailList();
+              renderRightPanel();
+              notify(starred?'Email starred':'Star removed');
+              return;
+            }
+            var nextIsRead = !activeEmail.isRead;
+            AppState.markEmailRead(activeEmail.id,nextIsRead);
+            renderEmailList();
+            renderRightPanel();
+            refreshInsights();
+            notify(nextIsRead?'Marked read':'Marked unread');
+          }
+        });
+        $('#messageDetailsAccordion').dxAccordion({
+          dataSource:[{
+            title:'Message details',
+            content:'<div class="thread-meta"><div class="thread-meta-row"><strong>Subject</strong><span>'+activeEmail.subject+'</span></div><div class="thread-meta-row"><strong>From</strong><span>'+activeEmail.from+'</span></div><div class="thread-meta-row"><strong>To</strong><span>'+(activeEmail.to||'sales@pipemailer.local')+'</span></div><div class="thread-meta-row"><strong>CC</strong><span>'+(activeEmail.cc||'—')+'</span></div></div>'
+          }],
+          multiple:false,
+          collapsible:true,
+          selectedIndex:-1,
+          itemTitleTemplate:function(item){ return item.title; },
+          itemTemplate:function(item){ return item.content; }
+        });
       }
       if($('#addNoteBtn').length){
         $('#addNoteBtn').dxButton({text:'Add note',onClick:function(){$('#notePopup').dxPopup('instance').show();}});
