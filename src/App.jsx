@@ -97,10 +97,7 @@ export default function App() {
               actions.setView('email');
             }}
             onOpenPipeline={(stage) => {
-              if (stage) {
-                actions.setSelectedStage(stage);
-                return;
-              }
+              actions.setSelectedStage(stage ?? null);
               actions.setView('pipeline');
             }}
           />

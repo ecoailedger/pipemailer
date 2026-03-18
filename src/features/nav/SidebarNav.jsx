@@ -5,7 +5,7 @@ import List from 'devextreme-react/list';
  *  view: 'email' | 'pipeline',
  *  selectedFolder: string,
  *  onSelectFolder: (folder: string) => void,
- *  onOpenPipeline: (stage?: string) => void,
+ *  onOpenPipeline: (stage?: string | null) => void,
  *  folderCounts: Record<string, number>,
  *  pipelineStages: string[]
  * }} props
@@ -17,6 +17,8 @@ export default function SidebarNav({ view, selectedFolder, onSelectFolder, onOpe
     { id: 'drafts', label: 'Drafts' },
     { id: 'archive', label: 'Archive' }
   ];
+
+  const stageItems = [{ id: null, label: 'All stages' }, ...pipelineStages.map((stage) => ({ id: stage, label: stage }))];
 
   return (
     <div>
@@ -42,9 +44,10 @@ export default function SidebarNav({ view, selectedFolder, onSelectFolder, onOpe
       <h4 className="section-title">Pipeline Stages</h4>
       <List
         id="pipelineStages"
-        dataSource={pipelineStages}
+        dataSource={stageItems}
         selectionMode="none"
-        onItemClick={(event) => onOpenPipeline(event.itemData)}
+        onItemClick={(event) => onOpenPipeline(event.itemData.id ?? null)}
+        itemRender={(item) => <span>{item.label}</span>}
       />
     </div>
   );

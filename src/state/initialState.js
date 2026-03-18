@@ -18,7 +18,7 @@ export const initialState = {
   selectedEmailId: initialEmails[0]?.id ?? null,
   selectedDealId: initialEmails[0]?.dealId ?? null,
   selectedFolder: 'inbox',
-  selectedStage: pipelineStages[0],
+  selectedStage: null,
   searchQuery: '',
   themeMode: 'light',
   showLoading: false,
