@@ -192,6 +192,7 @@
 <div id="composePopup"></div>
 <div id="notePopup"></div>
 <div id="dealPopup"></div>
+<div id="linkPopup"></div>
 <div id="searchPopup"></div>
 <div id="toast"></div>
 <div id="sendLoadPanel"></div>
@@ -785,7 +786,79 @@ $(function(){
       },500);
     }});
   }});
-  $('#linkBtn').dxButton({text:'Link Email',stylingMode:'text',onClick:function(){ $('#composePopup').dxPopup('instance').show(); }});
+  $('#linkPopup').dxPopup({
+    title:'Link emails and deals',
+    width:520,
+    height:420,
+    showCloseButton:true,
+    hideOnOutsideClick:true,
+    contentTemplate:function(c){
+      c.append('<div id="linkContextHelp" style="margin-bottom:10px;color:var(--text-secondary)"></div><div id="linkSourceSelector"></div><div id="linkTargetSelector" style="margin-top:10px"></div><div id="confirmLinkBtn" style="margin-top:14px"></div>');
+
+      var isEmailContext = AppState.rightPanelMode === 'email';
+      var sourceLabel = isEmailContext ? 'Source Email' : 'Source Deal';
+      var targetLabel = isEmailContext ? 'Target Deal' : 'Target Email';
+      var sourceData = isEmailContext ? AppState.emails : AppState.deals;
+      var targetData = isEmailContext ? AppState.deals : AppState.emails;
+      var sourceDisplayExpr = isEmailContext ? function(item){ return item ? (item.subject + ' · ' + item.from) : ''; } : 'title';
+      var targetDisplayExpr = isEmailContext ? 'title' : function(item){ return item ? (item.subject + ' · ' + item.from) : ''; };
+      var sourceValueExpr = 'id';
+      var targetValueExpr = 'id';
+      var defaultSourceValue = isEmailContext ? AppState.selectedEmailId : AppState.selectedDealId;
+
+      $('#linkContextHelp').text(
+        isEmailContext
+          ? 'You are linking an email to a deal.'
+          : 'You are linking an email to the selected deal.'
+      );
+
+      $('#linkSourceSelector').dxSelectBox({
+        dataSource:sourceData,
+        displayExpr:sourceDisplayExpr,
+        valueExpr:sourceValueExpr,
+        value:defaultSourceValue || null,
+        searchEnabled:true,
+        label:sourceLabel,
+        labelMode:'static',
+        placeholder:'Select ' + sourceLabel.toLowerCase()
+      });
+
+      $('#linkTargetSelector').dxSelectBox({
+        dataSource:targetData,
+        displayExpr:targetDisplayExpr,
+        valueExpr:targetValueExpr,
+        value:null,
+        searchEnabled:true,
+        label:targetLabel,
+        labelMode:'static',
+        placeholder:'Select ' + targetLabel.toLowerCase()
+      });
+
+      $('#confirmLinkBtn').dxButton({
+        text:'Confirm Link',
+        type:'success',
+        onClick:function(){
+          var sourceId = $('#linkSourceSelector').dxSelectBox('instance').option('value');
+          var targetId = $('#linkTargetSelector').dxSelectBox('instance').option('value');
+          if(!sourceId || !targetId){
+            notify('Please select both source and target before linking','warning');
+            return;
+          }
+
+          var emailId = isEmailContext ? sourceId : targetId;
+          var dealId = isEmailContext ? targetId : sourceId;
+
+          AppState.linkEmailToDeal(emailId,dealId);
+          renderEmailList();
+          renderRightPanel();
+          refreshInsights();
+          notify('Email linked to deal');
+          $('#linkPopup').dxPopup('instance').hide();
+        }
+      });
+    }
+  });
+  $('#linkBtn').dxButton({text:'Link Email',stylingMode:'text',onClick:function(){ $('#linkPopup').dxPopup('instance').show(); }});
   renderEmailList();
   renderRightPanel();
   refreshInsights();
