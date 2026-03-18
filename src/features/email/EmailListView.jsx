@@ -2,7 +2,11 @@ import List from 'devextreme-react/list';
 import { formatRelativeFromNow } from '../../utils/formatters';
 
 /**
- * @param {{ emails: Array<{id:string,from:string,subject:string,snippet:string,receivedAt:string,unread?:boolean}>, selectedEmailId: string | null, onSelectEmail: (id: string) => void }} props
+ * @param {{
+ *  emails: Array<{id:number,from:string,subject:string,snippet:string,date:string,isRead?:boolean}>,
+ *  selectedEmailId: number | null,
+ *  onSelectEmail: (id: number) => void
+ * }} props
  */
 export default function EmailListView({ emails, selectedEmailId, onSelectEmail }) {
   return (
@@ -23,10 +27,10 @@ export default function EmailListView({ emails, selectedEmailId, onSelectEmail }
           <div className="email-item">
             <div className="email-top">
               <span className="email-from">
-                {email.unread ? <span className="unread-dot" /> : null}
+                {!email.isRead ? <span className="unread-dot" /> : null}
                 {email.from}
               </span>
-              <span className="email-date">{formatRelativeFromNow(email.receivedAt)}</span>
+              <span className="email-date">{formatRelativeFromNow(email.date)}</span>
             </div>
             <div className="email-subject">{email.subject}</div>
             <div className="email-snippet">{email.snippet}</div>
