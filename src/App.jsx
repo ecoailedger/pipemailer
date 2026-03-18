@@ -45,7 +45,7 @@ export default function App() {
         counts[email.folder] = (counts[email.folder] ?? 0) + 1;
         return counts;
       },
-      { inbox: 0, sent: 0, drafts: 0 }
+      { inbox: 0, sent: 0, drafts: 0, archive: 0 }
     );
   }, [emails]);
 
@@ -75,10 +75,8 @@ export default function App() {
             selectedFolder={selectedFolder}
             folderCounts={folderCounts}
             pipelineStages={pipelineStages}
-            selectedStage={pipelineStages[0]}
-            deals={[]}
-            onFolderChange={setSelectedFolder}
-            onStageSelect={() => setView('pipeline')}
+            onSelectFolder={setSelectedFolder}
+            onOpenPipeline={() => setView('pipeline')}
           />
         }
         main={
