@@ -1,32 +1,91 @@
+import { useMemo, useState } from 'react';
 import TabPanel from 'devextreme-react/tab-panel';
-import Button from 'devextreme-react/button';
-import { formatCurrency, formatDate } from '../../utils/formatters';
+import ThreadView from './ThreadView.jsx';
+import { formatCurrency } from '../../utils/formatters';
+
+const EMPTY_DRAFT = { to: '', cc: '', subject: '', body: '' };
 
 /**
  * @param {{
- *  selectedEmail: {from:string,subject:string,snippet:string,date:string,dealId:number|null} | null,
+ *  selectedEmail: {id:number,from:string,to?:string,cc?:string,subject:string,snippet:string,date:string,dealId:number|null,thread?:Array<{from:string,at:string,body:string}>} | null,
  *  selectedDeal: {title:string,contact:string,stage:string,value:number,probability:number,notes?:string[]} | null,
- *  onCompose: () => void,
- *  onCreateDeal: () => void,
- *  onLinkEmail: () => void
+ *  deals: Array<{id:number,title:string}>,
+ *  draft: {to:string,cc:string,subject:string,body:string} | null,
+ *  onSetDraft: (payload: {emailId:number,to:string,cc:string,subject:string,body:string,dealId:number|null}) => void,
+ *  onClearDraft: (payload: {emailId:number}) => void,
+ *  onReply: (payload: {emailId:number,to:string,cc:string,subject:string,body:string,dealId:number|null}) => void,
+ *  onLinkDeal: (payload: { emailId: number, dealId: number }) => void
  * }} props
  */
-export default function RightPanel({ selectedEmail, selectedDeal, onCompose, onCreateDeal, onLinkEmail }) {
+export default function RightPanel({ selectedEmail, selectedDeal, deals, draft, onSetDraft, onClearDraft, onReply, onLinkDeal }) {
+  const [isComposerOpen, setIsComposerOpen] = useState(false);
+
+  const composerDraft = useMemo(() => draft ?? EMPTY_DRAFT, [draft]);
+
+  const openComposerFor = (mode) => {
+    if (!selectedEmail) return;
+
+    const includeCc = mode === 'replyAll';
+    const nextDraft = {
+      emailId: selectedEmail.id,
+      to: selectedEmail.from || '',
+      cc: includeCc ? selectedEmail.cc || '' : '',
+      subject: selectedEmail.subject?.startsWith('Re:') ? selectedEmail.subject : `Re: ${selectedEmail.subject || ''}`,
+      body: draft?.body || '',
+      dealId: selectedEmail.dealId ?? null
+    };
+
+    onSetDraft(nextDraft);
+    setIsComposerOpen(true);
+  };
+
+  const updateDraft = (field, value) => {
+    if (!selectedEmail) return;
+    onSetDraft({
+      emailId: selectedEmail.id,
+      to: composerDraft.to,
+      cc: composerDraft.cc,
+      subject: composerDraft.subject,
+      body: composerDraft.body,
+      dealId: selectedEmail.dealId ?? null,
+      [field]: value
+    });
+  };
+
+  const sendReply = () => {
+    if (!selectedEmail) return;
+    onReply({
+      emailId: selectedEmail.id,
+      to: composerDraft.to,
+      cc: composerDraft.cc,
+      subject: composerDraft.subject,
+      body: composerDraft.body,
+      dealId: selectedEmail.dealId ?? null
+    });
+    setIsComposerOpen(false);
+  };
+
+  const cancelReply = () => {
+    if (selectedEmail) onClearDraft({ emailId: selectedEmail.id });
+    setIsComposerOpen(false);
+  };
+
   const tabs = [
     {
-      title: 'Summary',
+      title: 'Thread',
       content: (
-        <div className="thread-wrap">
-          <div className="thread-meta">
-            <div className="thread-meta-row"><span>From</span><span>{selectedEmail?.from ?? '—'}</span></div>
-            <div className="thread-meta-row"><span>Date</span><span>{selectedEmail ? formatDate(selectedEmail.date) : '—'}</span></div>
-            <div className="thread-meta-row"><span>Deal</span><span>{selectedDeal?.title ?? 'Unlinked'}</span></div>
-          </div>
-          <article className="thread-message">
-            <div className="thread-message-head"><span>{selectedEmail?.subject ?? selectedDeal?.title ?? 'No item selected'}</span></div>
-            <div className="email-body-full">{selectedEmail?.snippet ?? selectedDeal?.contact ?? 'Select an email or a deal to view details.'}</div>
-          </article>
-        </div>
+        <ThreadView
+          selectedEmail={selectedEmail}
+          selectedDeal={selectedDeal}
+          deals={deals}
+          draft={composerDraft}
+          showComposer={isComposerOpen}
+          onStartReply={openComposerFor}
+          onLinkDeal={onLinkDeal}
+          onDraftChange={updateDraft}
+          onSendReply={sendReply}
+          onCancelReply={cancelReply}
+        />
       )
     },
     {
@@ -48,18 +107,34 @@ export default function RightPanel({ selectedEmail, selectedDeal, onCompose, onC
       )
     },
     {
-      title: 'Actions',
+      title: 'Activity',
       content: (
         <div className="thread-wrap">
-          <div className="thread-actions-row">
-            <Button text="Reply" type="default" stylingMode="contained" onClick={onCompose} />
-            <Button text="Create Deal" stylingMode="outlined" onClick={onCreateDeal} />
-            <Button text="Link" stylingMode="text" onClick={onLinkEmail} />
-          </div>
+          {selectedEmail?.thread?.length ? (
+            selectedEmail.thread.map((message, index) => (
+              <div className="timeline-item" key={`activity-${message.at}-${index}`}>
+                <div className="timeline-head">
+                  <span>{message.from}</span>
+                  <span>{message.at}</span>
+                </div>
+                <div className="email-body-full">{message.body}</div>
+              </div>
+            ))
+          ) : (
+            <div className="empty-state">No activity yet for this thread.</div>
+          )}
         </div>
       )
     }
   ];
 
-  return <TabPanel id="detailTabs" dataSource={tabs} deferRendering={false} itemTitleRender={(item) => item.title} itemRender={(item) => item.content} />;
+  return (
+    <TabPanel
+      id="detailTabs"
+      dataSource={tabs}
+      deferRendering={false}
+      itemTitleRender={(item) => item.title}
+      itemRender={(item) => item.content}
+    />
+  );
 }
