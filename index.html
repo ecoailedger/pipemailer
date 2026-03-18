@@ -32,6 +32,7 @@
     .action-grid { margin: 8px 12px 0; display: grid; gap: 8px; }
     .insights-card { margin: 12px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 10px; }
     .insight-row { display:flex; justify-content: space-between; margin-top: 6px; font-size: 13px; }
+    #stageChart { margin: 8px 12px 12px; height: 180px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-elevated); }
     #emailListContainer, #kanbanView { height: calc(100% - 12px); }
     #emailList { height: 100%; }
     .email-item { padding: 10px 14px; border-bottom: 1px solid var(--border-subtle); cursor: pointer; }
@@ -91,6 +92,7 @@
         <div class="insight-row"><span>Unread emails</span><strong id="unreadCount">0</strong></div>
         <div class="insight-row"><span>Open pipeline</span><strong id="openDealCount">0</strong></div>
       </div>
+      <div id="stageChart"></div>
     </aside>
     <main class="panel">
       <div id="emailListContainer"><div id="emailList"></div></div>
@@ -104,6 +106,7 @@
 </div>
 <div id="composePopup"></div>
 <div id="notePopup"></div>
+<div id="dealPopup"></div>
 <div id="searchPopup"></div>
 <div id="toast"></div>
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
@@ -139,12 +142,33 @@ window.AppState = {
   },
   addDealNote:function(dealId,note){ var d=this.deals.find(function(x){return x.id===dealId}); if(d){d.notes.unshift(note);} }
 };
+function getStageSummary(){
+  return AppState.pipelineStages.map(function(stage){
+    var deals = AppState.deals.filter(function(d){ return d.stage===stage; });
+    var value = deals.reduce(function(sum,d){ return sum + d.value; },0);
+    return { stage:stage, count:deals.length, value:value };
+  });
+}
+function getDealHealthRows(){
+  return AppState.deals.map(function(d){
+    return {
+      id:d.id,
+      title:d.title,
+      stage:d.stage,
+      value:d.value,
+      probability:d.probability,
+      velocity:d.days + ' days',
+      notes:d.notes
+    };
+  });
+}
 function notify(msg,type){ $('#toast').dxToast({message:msg,type:type||'success',displayTime:1800,width:320}).dxToast('instance').show(); }
 function refreshInsights(){
   var unread = AppState.emails.filter(function(e){ return !e.isRead; }).length;
   var openDeals = AppState.deals.filter(function(d){ return d.stage !== 'Won' && d.stage !== 'Lost'; }).length;
   $('#unreadCount').text(unread);
   $('#openDealCount').text(openDeals);
+  if($('#stageChart').length){ renderStageChart(); }
 }
 function renderEmailList(){
   var list = AppState.emails.filter(function(e){return e.folder===AppState.selectedFolder;});
@@ -171,10 +195,21 @@ function renderKanban(){
       body.append('<div class="deal-card" data-id="'+d.id+'"><div>'+d.title+'</div><div style="font-size:12px;color:var(--text-secondary)">'+d.contact+'</div><div class="deal-value">£'+d.value.toLocaleString()+'</div></div>');
     });
     body.dxSortable({group:'deals',filter:'.deal-card',itemOrientation:'vertical',onAdd:function(e){
-      AppState.moveDealToStage(Number($(e.itemElement).data('id')),stage); notify('Deal moved to '+stage); renderKanban();
+      AppState.moveDealToStage(Number($(e.itemElement).data('id')),stage); notify('Deal moved to '+stage); renderKanban(); refreshInsights();
     }});
   });
   $('.deal-card').on('click',function(){AppState.selectDeal(Number($(this).data('id')));});
+}
+function renderStageChart(){
+  $('#stageChart').dxPieChart({
+    dataSource:getStageSummary(),
+    type:'doughnut',
+    palette:'Soft',
+    series:[{ argumentField:'stage', valueField:'count', label:{ visible:true, format:'fixedPoint' } }],
+    legend:{ horizontalAlignment:'center', verticalAlignment:'bottom' },
+    tooltip:{ enabled:true, customizeTooltip:function(point){ return { text: point.argumentText + ': ' + point.valueText + ' deals' }; } },
+    size:{ height: 178 }
+  });
 }
 function toggleTheme(){
   themeMode = themeMode === 'light' ? 'dark' : 'light';
@@ -185,7 +220,7 @@ function toggleTheme(){
   notify('Switched to ' + themeMode + ' mode');
 }
 function renderRightPanel(){
-  var tabs = [{title:'Thread'},{title:'Deal'},{title:'Activity'}];
+  var tabs = [{title:'Thread'},{title:'Deal'},{title:'Activity'},{title:'Insights'}];
   $('#detailTabs').dxTabPanel({
     dataSource:tabs,animationEnabled:false,swipeEnabled:false,
     itemTitleTemplate:function(i){ return i.title; },
@@ -198,13 +233,15 @@ function renderRightPanel(){
         if(item.title==='Deal') return deal
           ?'<div style="padding:12px"><h3>'+deal.title+'</h3><p>'+deal.contact+'</p><p class="deal-value">£'+deal.value.toLocaleString()+'</p><p><strong>Stage:</strong> '+deal.stage+'</p></div>'
           :'<div class="empty-state">No linked deal. Use the Thread tab to align this email to a deal.</div>';
-        return deal?'<div style="padding:12px">'+deal.notes.map(function(n){return '<div class="thread-message">'+n+'</div>';}).join('')+'</div>':'<div class="empty-state">No activity.</div>';
+        if(item.title==='Activity') return deal?'<div style="padding:12px">'+deal.notes.map(function(n){return '<div class="thread-message">'+n+'</div>';}).join('')+'</div>':'<div class="empty-state">No activity.</div>';
+        return '<div style="padding:12px"><div id="dealHealthGrid"></div><div id="dealActivityAccordion" style="margin-top:12px"></div></div>';
       }
       var dl = AppState.deals.find(function(d){return d.id===AppState.selectedDealId;});
       if(!dl){ return '<div class="empty-state">Select a deal from Kanban.</div>'; }
       if(item.title==='Thread') return '<div style="padding:12px">Deal: '+dl.title+'<br/>Stage: '+dl.stage+'</div>';
       if(item.title==='Deal') return '<div style="padding:12px"><h3>'+dl.title+'</h3><p>'+dl.contact+'</p><p class="deal-value">£'+dl.value.toLocaleString()+'</p><div id="addNoteBtn"></div></div>';
-      return '<div style="padding:12px">'+dl.notes.map(function(n){return '<div class="thread-message">'+n+'</div>';}).join('')+'</div>';
+      if(item.title==='Activity') return '<div style="padding:12px">'+dl.notes.map(function(n){return '<div class="thread-message">'+n+'</div>';}).join('')+'</div>';
+      return '<div style="padding:12px"><div id="dealHealthGrid"></div><div id="dealActivityAccordion" style="margin-top:12px"></div></div>';
     },
     onContentReady:function(){
       if($('#emailDealSelector').length){
@@ -258,6 +295,43 @@ function renderRightPanel(){
       if($('#addNoteBtn').length){
         $('#addNoteBtn').dxButton({text:'Add note',onClick:function(){$('#notePopup').dxPopup('instance').show();}});
       }
+      if($('#dealHealthGrid').length){
+        $('#dealHealthGrid').dxDataGrid({
+          dataSource:getDealHealthRows(),
+          keyExpr:'id',
+          showBorders:true,
+          rowAlternationEnabled:true,
+          paging:{ pageSize:5 },
+          searchPanel:{ visible:true, width:220, placeholder:'Search deals...' },
+          columns:[
+            { dataField:'title', caption:'Deal' },
+            { dataField:'stage', width:100 },
+            { dataField:'value', caption:'Value', dataType:'number', format:{ type:'currency', currency:'GBP', precision:0 } },
+            { dataField:'probability', caption:'Win %', width:90 },
+            { dataField:'velocity', caption:'Velocity', width:100 }
+          ],
+          masterDetail:{
+            enabled:true,
+            template:function(container, options){
+              var notes = (options.data.notes||[]).map(function(n){ return '<div class="thread-message">'+n+'</div>'; }).join('') || '<div class="empty-state">No notes</div>';
+              container.append('<div style="padding:8px 0"><strong>Latest notes</strong>'+notes+'</div>');
+            }
+          },
+          onRowClick:function(ev){ AppState.selectDeal(ev.data.id); }
+        });
+      }
+      if($('#dealActivityAccordion').length){
+        var summary = getStageSummary().map(function(s){
+          return { title:s.stage + ' ('+s.count+')', text:'Pipeline value: £' + s.value.toLocaleString() };
+        });
+        $('#dealActivityAccordion').dxAccordion({
+          dataSource:summary,
+          multiple:true,
+          collapsible:true,
+          itemTitleTemplate:function(item){ return item.title; },
+          itemTemplate:function(item){ return '<div style="padding:8px">'+item.text+'</div>'; }
+        });
+      }
     }
   });
   var title = AppState.rightPanelMode==='email' ? (AppState.emails.find(function(e){return e.id===AppState.selectedEmailId;})||{}).subject : (AppState.deals.find(function(d){return d.id===AppState.selectedDealId;})||{}).title;
@@ -287,11 +361,7 @@ $(function(){
     notify('Inbox marked as read');
   }});
   $('#newDealBtn').dxButton({text:'Quick add deal',stylingMode:'outlined',onClick:function(){
-    var newId = Date.now();
-    AppState.deals.unshift({id:newId,title:'New Opportunity '+newId.toString().slice(-4),contact:'New Account',value:15000,stage:'Leads',probability:15,days:1,notes:['Deal created from quick action']});
-    refreshInsights();
-    renderKanban();
-    notify('New deal added');
+    $('#dealPopup').dxPopup('instance').show();
   }});
   $('#composePopup').dxPopup({title:'Compose Email',width:560,height:430,showCloseButton:true,contentTemplate:function(c){
     c.append('<div id="toField"></div><div id="subField" style="margin-top:10px"></div><div id="bodyField" style="margin-top:10px"></div><div id="linkDeal" style="margin-top:10px"></div><div id="sendBtn" style="margin-top:12px"></div>');
@@ -307,10 +377,47 @@ $(function(){
       if(AppState.selectedDealId && note){e.component.option('disabled',true);setTimeout(function(){AppState.addDealNote(AppState.selectedDealId,note);notify('Note saved');$('#notePopup').dxPopup('instance').hide();renderRightPanel();e.component.option('disabled',false);},700);}
     }});
   }});
+  $('#dealPopup').dxPopup({title:'Create deal',width:520,height:470,showCloseButton:true,contentTemplate:function(c){
+    c.append('<div id="dealForm"></div><div id="saveDeal" style="margin-top:10px"></div>');
+    var formData = { title:'', contact:'', value:15000, stage:'Leads', probability:25, tags:[] };
+    $('#dealForm').dxForm({
+      formData:formData,
+      labelMode:'floating',
+      items:[
+        { dataField:'title', editorType:'dxTextBox', isRequired:true },
+        { dataField:'contact', editorType:'dxTextBox', isRequired:true },
+        { dataField:'value', editorType:'dxNumberBox', editorOptions:{ min:1000, format:'#,##0' } },
+        { dataField:'stage', editorType:'dxSelectBox', editorOptions:{ dataSource:AppState.pipelineStages } },
+        { dataField:'probability', editorType:'dxSlider', editorOptions:{ min:5, max:100, showRange:true } },
+        { dataField:'tags', editorType:'dxTagBox', editorOptions:{ dataSource:['Expansion','Renewal','Risk','Urgent','Legal'], showSelectionControls:true } }
+      ]
+    });
+    $('#saveDeal').dxButton({text:'Save deal',type:'success',onClick:function(e){
+      var form = $('#dealForm').dxForm('instance');
+      var data = form.option('formData');
+      if(!data.title || !data.contact){ notify('Deal title and contact are required','warning'); return; }
+      e.component.option('disabled',true);
+      setTimeout(function(){
+        var newId = Date.now();
+        AppState.deals.unshift({
+          id:newId,title:data.title,contact:data.contact,value:Number(data.value)||10000,stage:data.stage||'Leads',
+          probability:Number(data.probability)||20,days:1,notes:['Deal created from quick action','Tags: '+((data.tags||[]).join(', ')||'none')]
+        });
+        refreshInsights();
+        renderKanban();
+        renderStageChart();
+        renderRightPanel();
+        $('#dealPopup').dxPopup('instance').hide();
+        notify('New deal added');
+        e.component.option('disabled',false);
+      },500);
+    }});
+  }});
   $('#linkBtn').dxButton({text:'Link Email',stylingMode:'text',onClick:function(){ $('#composePopup').dxPopup('instance').show(); }});
   renderEmailList();
   renderRightPanel();
   refreshInsights();
+  renderStageChart();
 });
 </script>
 </body>
