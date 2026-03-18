@@ -1,0 +1,38 @@
+import List from 'devextreme-react/list';
+import { formatRelativeFromNow } from '../../utils/formatters';
+
+/**
+ * @param {{ emails: Array<{id:string,from:string,subject:string,snippet:string,receivedAt:string,unread?:boolean}>, selectedEmailId: string | null, onSelectEmail: (id: string) => void }} props
+ */
+export default function EmailListView({ emails, selectedEmailId, onSelectEmail }) {
+  return (
+    <div id="emailListContainer">
+      <List
+        dataSource={emails}
+        keyExpr="id"
+        focusStateEnabled={false}
+        activeStateEnabled={false}
+        hoverStateEnabled
+        selectionMode="single"
+        selectedItemKeys={selectedEmailId ? [selectedEmailId] : []}
+        onSelectionChanged={(event) => {
+          const selected = event.addedItems?.[0];
+          if (selected?.id) onSelectEmail(selected.id);
+        }}
+        itemRender={(email) => (
+          <div className="email-item">
+            <div className="email-top">
+              <span className="email-from">
+                {email.unread ? <span className="unread-dot" /> : null}
+                {email.from}
+              </span>
+              <span className="email-date">{formatRelativeFromNow(email.receivedAt)}</span>
+            </div>
+            <div className="email-subject">{email.subject}</div>
+            <div className="email-snippet">{email.snippet}</div>
+          </div>
+        )}
+      />
+    </div>
+  );
+}
