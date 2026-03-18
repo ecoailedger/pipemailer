@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "predeploy": "npm run build",
     "deploy": "npx wrangler deploy",
-    "deploy:cf": "npm run build && npx wrangler deploy"
+    "deploy:cf": "npm run build && test -d dist && npx wrangler deploy"
   },
   "dependencies": {
     "devextreme": "^25.1.6",
