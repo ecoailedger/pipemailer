@@ -1,7 +1,45 @@
-import { useMemo, useReducer } from 'react';
+import { useEffect, useMemo, useReducer } from 'react';
 import { initialState } from './initialState';
 
 const PRIORITY_ORDER = ['low', 'medium', 'high', 'urgent'];
+const APP_STORE_STORAGE_KEY = 'pipemailer:app-store:v1';
+
+function getPersistableSnapshot(state) {
+  return {
+    emails: state.emails,
+    deals: state.deals,
+    returnCases: state.returnCases
+  };
+}
+
+function loadInitialState() {
+  if (typeof window === 'undefined') return initialState;
+
+  try {
+    const rawSnapshot = window.localStorage.getItem(APP_STORE_STORAGE_KEY);
+    if (!rawSnapshot) return initialState;
+    const parsedSnapshot = JSON.parse(rawSnapshot);
+
+    return {
+      ...initialState,
+      emails: Array.isArray(parsedSnapshot?.emails) ? parsedSnapshot.emails : initialState.emails,
+      deals: Array.isArray(parsedSnapshot?.deals) ? parsedSnapshot.deals : initialState.deals,
+      returnCases: Array.isArray(parsedSnapshot?.returnCases) ? parsedSnapshot.returnCases : initialState.returnCases
+    };
+  } catch (_error) {
+    return initialState;
+  }
+}
+
+function persistState(state) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(APP_STORE_STORAGE_KEY, JSON.stringify(getPersistableSnapshot(state)));
+}
+
+function clearPersistedState() {
+  if (typeof window === 'undefined') return;
+  window.localStorage.removeItem(APP_STORE_STORAGE_KEY);
+}
 
 function getEscalatedPriority(priority = 'medium') {
   const currentIndex = PRIORITY_ORDER.indexOf(priority);
@@ -603,13 +641,19 @@ function reducer(state, action) {
       return { ...state, toast: { visible: true, message: action.payload } };
     case 'hideToast':
       return { ...state, toast: { ...state.toast, visible: false } };
+    case 'resetDemoData':
+      return { ...initialState };
     default:
       return state;
   }
 }
 
 export function useAppStore() {
-  const [state, dispatch] = useReducer(reducer, initialState);
+  const [state, dispatch] = useReducer(reducer, undefined, loadInitialState);
+
+  useEffect(() => {
+    persistState(state);
+  }, [state.emails, state.deals, state.returnCases]);
 
   const actions = useMemo(
     () => ({
@@ -649,6 +693,10 @@ export function useAppStore() {
       updateMacroTemplate: (payload) => dispatch({ type: 'updateMacroTemplate', payload }),
       archiveMacroTemplate: (payload) => dispatch({ type: 'archiveMacroTemplate', payload }),
       trackMacroUsage: (payload) => dispatch({ type: 'trackMacroUsage', payload }),
+      resetDemoData: () => {
+        clearPersistedState();
+        dispatch({ type: 'resetDemoData' });
+      },
       showToast: (message) => dispatch({ type: 'showToast', payload: message }),
       hideToast: () => dispatch({ type: 'hideToast' })
     }),
