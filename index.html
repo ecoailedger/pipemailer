@@ -112,26 +112,6 @@
     #detailTabs { height: calc(100% - 58px); min-height:0; }
     .dx-list, .dx-popup-content, .dx-scrollable-content { background: var(--bg-surface)!important; }
     .dx-texteditor { background: var(--bg-elevated)!important; border-color: var(--border)!important; }
-    .ui-field-lg .dx-texteditor,
-    .ui-field-lg .dx-dropdowneditor,
-    .ui-field-lg .dx-dropdownbutton,
-    .ui-field-lg .dx-tagbox { min-height: 44px; font-size: 15px; }
-    .ui-field-lg .dx-texteditor-input,
-    .ui-field-lg .dx-dropdowneditor-input,
-    .ui-field-lg .dx-tagbox .dx-texteditor-input { min-height: 42px; padding-top: 10px; padding-bottom: 10px; }
-    .ui-field-outlined .dx-dropdowneditor,
-    .ui-field-outlined .dx-dropdownbutton,
-    .ui-field-outlined .dx-tagbox { border: 1px solid var(--border)!important; border-radius: var(--radius-md); background: var(--bg-elevated)!important; transition: border-color .2s ease, box-shadow .2s ease; }
-    .ui-field-outlined .dx-dropdowneditor:hover,
-    .ui-field-outlined .dx-dropdownbutton:hover,
-    .ui-field-outlined .dx-tagbox:hover { border-color: var(--accent)!important; }
-    .ui-field-outlined .dx-state-focused.dx-dropdowneditor,
-    .ui-field-outlined .dx-state-focused.dx-dropdownbutton,
-    .ui-field-outlined .dx-state-focused.dx-tagbox,
-    .ui-field-outlined .dx-dropdowneditor.dx-state-focused,
-    .ui-field-outlined .dx-dropdownbutton.dx-state-focused,
-    .ui-field-outlined .dx-tagbox.dx-state-focused { border-color: var(--accent)!important; box-shadow: 0 0 0 3px var(--accent-dim); }
-    .ui-stack-md > * + * { margin-top: var(--space-3); }
     .dx-button-mode-contained.dx-button-success { background-color: var(--accent)!important; color: var(--bg-base)!important; }
     .compose-actions { display:flex; gap:8px; margin-top:12px; position: sticky; bottom: 0; background: linear-gradient(to top, var(--bg-surface) 75%, transparent); padding-top: 8px; }
     .timeline-filter-row { position: sticky; top: 0; z-index: 2; background: var(--bg-surface); padding-bottom: 6px; }
@@ -688,15 +668,6 @@ function toggleTheme(){
   Object.keys(vars).forEach(function(k){ document.documentElement.style.setProperty(k, vars[k]); });
   notify('Switched to ' + themeMode + ' mode');
 }
-var commonDropdownConfig = {
-  searchEnabled:true,
-  labelMode:'static',
-  stylingMode:'outlined',
-  elementAttr:{ class:'ui-field-lg ui-field-outlined' }
-};
-function withCommonDropdownOptions(overrides){
-  return $.extend(true, {}, commonDropdownConfig, overrides || {});
-}
 function renderRightPanel(){
   var tabs = [{title:'Thread'},{title:'Deal'},{title:'Activity'},{title:'Insights'}];
   $('#detailTabs').dxTabPanel({
@@ -707,7 +678,7 @@ function renderRightPanel(){
         var em = AppState.emails.find(function(e){return e.id===AppState.selectedEmailId;});
         if(!em){ return '<div class="empty-state">Select an email to view details.</div>'; }
         var deal = AppState.deals.find(function(d){return d.id===em.dealId;});
-        if(item.title==='Thread') return '<div class="thread-wrap"><div class="panel-section-label">Actions</div><div class="thread-actions-row"><div class="thread-actions-primary"><div id="replyBtn"></div><div id="replyAllBtn"></div><div id="archiveBtn"></div></div><div id="threadOverflowBtn" class="ui-field-lg ui-field-outlined"></div></div><div id="messageDetailsAccordion"></div><div class="panel-section-label">Conversation</div><div id="threadScroll" class="thread-scroll"><div id="threadMessages"></div></div><div class="ui-stack-md mt-5"><div id="emailDealSelector" class="ui-field-lg ui-field-outlined"></div><div id="emailStageSelector" class="ui-field-lg ui-field-outlined"></div></div><div class="reply-composer"><div class="panel-section-label">Composer</div><div id="replyToField"></div><div id="replyCcField" class="mt-2"></div><div id="replySubjectField" class="mt-2"></div><div id="replyArea" class="mt-2"></div><div id="sendReply" class="mt-3"></div></div></div>';
+        if(item.title==='Thread') return '<div class="thread-wrap"><div class="panel-section-label">Actions</div><div class="thread-actions-row"><div class="thread-actions-primary"><div id="replyBtn"></div><div id="replyAllBtn"></div><div id="archiveBtn"></div></div><div id="threadOverflowBtn"></div></div><div id="messageDetailsAccordion"></div><div class="panel-section-label">Conversation</div><div id="threadScroll" class="thread-scroll"><div id="threadMessages"></div></div><div id="emailDealSelector" class="mt-5"></div><div id="emailStageSelector" class="mt-3"></div><div class="reply-composer"><div class="panel-section-label">Composer</div><div id="replyToField"></div><div id="replyCcField" class="mt-2"></div><div id="replySubjectField" class="mt-2"></div><div id="replyArea" class="mt-2"></div><div id="sendReply" class="mt-3"></div></div></div>';
         if(item.title==='Deal') return deal
           ?'<div class="card-body"><h3>'+deal.title+'</h3><p>'+deal.contact+'</p><p class="deal-value">'+formatCurrency(deal.value)+'</p><p><strong>Stage:</strong> '+deal.stage+'</p></div>'
           :'<div class="empty-state">No linked deal. Use the Thread tab to align this email to a deal.</div>';
@@ -724,13 +695,15 @@ function renderRightPanel(){
     onContentReady:function(){
       if($('#emailDealSelector').length){
         var selectedEmail = AppState.emails.find(function(e){return e.id===AppState.selectedEmailId;});
-        $('#emailDealSelector').dxSelectBox(withCommonDropdownOptions({
+        $('#emailDealSelector').dxSelectBox({
           dataSource:AppState.deals,
           displayExpr:'title',
           valueExpr:'id',
           value:selectedEmail && selectedEmail.dealId ? selectedEmail.dealId : null,
           placeholder:'Align email to a deal',
+          searchEnabled:true,
           label:'Aligned Deal',
+          labelMode:'static',
           onValueChanged:function(ev){
             if(!selectedEmail){ return; }
             AppState.linkEmailToDeal(selectedEmail.id,ev.value||null);
@@ -738,20 +711,20 @@ function renderRightPanel(){
             renderRightPanel();
             notify(ev.value ? 'Email aligned to deal' : 'Email alignment removed');
           }
-        }));
+        });
       }
       if($('#emailStageSelector').length){
         var selectedEmailForStage = AppState.emails.find(function(e){return e.id===AppState.selectedEmailId;});
         var linkedDeal = selectedEmailForStage && selectedEmailForStage.dealId
           ? AppState.deals.find(function(d){return d.id===selectedEmailForStage.dealId;})
           : null;
-        $('#emailStageSelector').dxSelectBox(withCommonDropdownOptions({
+        $('#emailStageSelector').dxSelectBox({
           dataSource:AppState.pipelineStages,
-          searchEnabled:false,
           value:linkedDeal?linkedDeal.stage:null,
           placeholder:linkedDeal?'Set deal stage':'Align this email to a deal first',
           disabled:!linkedDeal,
           label:'Deal Stage for this Email',
+          labelMode:'static',
           onValueChanged:function(ev){
             if(!selectedEmailForStage || !ev.value){ return; }
             var updated = AppState.updateEmailDealStage(selectedEmailForStage.id,ev.value);
@@ -762,7 +735,7 @@ function renderRightPanel(){
               notify('Deal stage updated to '+ev.value);
             }
           }
-        }));
+        });
       }
       if($('#replyArea').length){
         var activeEmail = AppState.emails.find(function(e){return e.id===AppState.selectedEmailId;});
@@ -803,8 +776,9 @@ function renderRightPanel(){
           refreshInsights();
           notify('Email archived');
         }});
-        $('#threadOverflowBtn').dxDropDownButton(withCommonDropdownOptions({
+        $('#threadOverflowBtn').dxDropDownButton({
           icon:'overflow',
+          stylingMode:'outlined',
           dropDownOptions:{ width:150 },
           items:overflowActions,
           displayExpr:'text',
@@ -829,7 +803,7 @@ function renderRightPanel(){
             refreshInsights();
             notify(nextIsRead?'Marked read':'Marked unread');
           }
-        }));
+        });
         $('#messageDetailsAccordion').dxAccordion({
           dataSource:[{
             title:'Message details',
@@ -922,9 +896,10 @@ $(function(){
     }
   });
   $('#sendLoadPanel').dxLoadPanel({shadingColor:'rgba(0,0,0,0.25)',position:{of:'.app-shell'},visible:false,showIndicator:true,showPane:true,message:'Sending...'});
-  $('#quickActionsMenu').dxDropDownButton(withCommonDropdownOptions({
+  $('#quickActionsMenu').dxDropDownButton({
     text:'More',
     icon:'overflow',
+    stylingMode:'text',
     displayExpr:'text',
     keyExpr:'id',
     items:[
@@ -945,7 +920,7 @@ $(function(){
       if(e.item.id==='openCompose'){ $('#composePopup').dxPopup('instance').show(); }
       if(e.item.id==='focusPipeline'){ AppState.currentView='pipeline';$('#emailListContainer').hide();$('#kanbanView').show();renderKanban(); }
     }
-  }));
+  });
   $('#emailViewBtn').dxButton({text:'Email View',stylingMode:'outlined',onClick:function(){AppState.currentView='email';$('#emailListContainer').show();$('#kanbanView').hide();}});
   $('#pipelineViewBtn').dxButton({text:'Pipeline View',stylingMode:'outlined',onClick:function(){AppState.currentView='pipeline';$('#emailListContainer').hide();$('#kanbanView').show();renderKanban();}});
   $('#folders').dxList({dataSource:[{name:'Inbox',id:'inbox'},{name:'Sent',id:'sent'},{name:'Drafts',id:'drafts'},{name:'Archive',id:'archive'}],height:176,itemTemplate:function(i){
@@ -982,7 +957,7 @@ $(function(){
       }
     },
     contentTemplate:function(c){
-      c.append('<div id="emailModeField"></div><div id="senderField" class="mt-3"></div><div id="subField" class="mt-3"></div><div id="rawBodyField" class="mt-3"></div><div id="smartPreview"></div><div class="ui-stack-md mt-3"><div id="linkDeal" class="ui-field-lg ui-field-outlined"></div></div><div class="composer-hint">Shortcut: Ctrl/Cmd + Enter to save, Esc to close.</div><div class="compose-actions"><div id="cancelEmailBtn"></div><div id="saveEmailBtn"></div></div>');
+      c.append('<div id="emailModeField"></div><div id="senderField" class="mt-3"></div><div id="subField" class="mt-3"></div><div id="rawBodyField" class="mt-3"></div><div id="smartPreview"></div><div id="linkDeal" class="mt-3"></div><div class="composer-hint">Shortcut: Ctrl/Cmd + Enter to save, Esc to close.</div><div class="compose-actions"><div id="cancelEmailBtn"></div><div id="saveEmailBtn"></div></div>');
       var draft = JSON.parse(sessionStorage.getItem(AppState.addEmailDraftKey)||'{}');
       function saveDraft(){
         var payload = {
@@ -1023,15 +998,7 @@ $(function(){
           if(ev.event && (ev.event.ctrlKey || ev.event.metaKey)){ $('#saveEmailBtn').dxButton('instance').option('onClick')(); }
         }
       });
-      $('#linkDeal').dxSelectBox(withCommonDropdownOptions({
-        dataSource:AppState.deals,
-        displayExpr:'title',
-        valueExpr:'id',
-        placeholder:'Link to deal (optional)',
-        value:draft.dealId||null,
-        label:'Linked Deal',
-        onValueChanged:saveDraft
-      }));
+      $('#linkDeal').dxSelectBox({dataSource:AppState.deals,displayExpr:'title',valueExpr:'id',placeholder:'Link to deal (optional)',value:draft.dealId||null,onValueChanged:saveDraft});
       $('#cancelEmailBtn').dxButton({text:'Cancel',stylingMode:'outlined',onClick:function(){ $('#composePopup').dxPopup('instance').hide(); }});
       $('#saveEmailBtn').dxButton({text:'Save Email',type:'success',onClick:function(){
         var sender = $('#senderField').dxTextBox('instance').option('value') || 'Unknown sender';
@@ -1074,9 +1041,9 @@ $(function(){
         { dataField:'title', editorType:'dxTextBox', isRequired:true },
         { dataField:'contact', editorType:'dxTextBox', isRequired:true },
         { dataField:'value', editorType:'dxNumberBox', editorOptions:{ min:1000, format:'#,##0' } },
-        { dataField:'stage', editorType:'dxSelectBox', editorOptions:withCommonDropdownOptions({ dataSource:AppState.pipelineStages, searchEnabled:false }) },
+        { dataField:'stage', editorType:'dxSelectBox', editorOptions:{ dataSource:AppState.pipelineStages } },
         { dataField:'probability', editorType:'dxSlider', editorOptions:{ min:5, max:100, showRange:true } },
-        { dataField:'tags', editorType:'dxTagBox', editorOptions:withCommonDropdownOptions({ dataSource:['Expansion','Renewal','Risk','Urgent','Legal'], showSelectionControls:true, hideSelectedItems:false }) }
+        { dataField:'tags', editorType:'dxTagBox', editorOptions:{ dataSource:['Expansion','Renewal','Risk','Urgent','Legal'], showSelectionControls:true } }
       ]
     });
     $('#saveDeal').dxButton({text:'Save deal',type:'success',onClick:function(e){
@@ -1107,7 +1074,7 @@ $(function(){
     showCloseButton:true,
     hideOnOutsideClick:true,
     contentTemplate:function(c){
-      c.append('<div id="linkContextHelp" class="mb-3 text-secondary"></div><div class="ui-stack-md"><div id="linkSourceSelector" class="ui-field-lg ui-field-outlined"></div><div id="linkTargetSelector" class="ui-field-lg ui-field-outlined"></div></div><div id="confirmLinkBtn" class="mt-5"></div>');
+      c.append('<div id="linkContextHelp" class="mb-3 text-secondary"></div><div id="linkSourceSelector"></div><div id="linkTargetSelector" class="mt-3"></div><div id="confirmLinkBtn" class="mt-5"></div>');
 
       var isEmailContext = AppState.rightPanelMode === 'email';
       var sourceLabel = isEmailContext ? 'Source Email' : 'Source Deal';
@@ -1126,23 +1093,27 @@ $(function(){
           : 'You are linking an email to the selected deal.'
       );
 
-      $('#linkSourceSelector').dxSelectBox(withCommonDropdownOptions({
+      $('#linkSourceSelector').dxSelectBox({
         dataSource:sourceData,
         displayExpr:sourceDisplayExpr,
         valueExpr:sourceValueExpr,
         value:defaultSourceValue || null,
+        searchEnabled:true,
         label:sourceLabel,
+        labelMode:'static',
         placeholder:'Select ' + sourceLabel.toLowerCase()
-      }));
+      });
 
-      $('#linkTargetSelector').dxSelectBox(withCommonDropdownOptions({
+      $('#linkTargetSelector').dxSelectBox({
         dataSource:targetData,
         displayExpr:targetDisplayExpr,
         valueExpr:targetValueExpr,
         value:null,
+        searchEnabled:true,
         label:targetLabel,
+        labelMode:'static',
         placeholder:'Select ' + targetLabel.toLowerCase()
-      }));
+      });
 
       $('#confirmLinkBtn').dxButton({
         text:'Confirm Link',
