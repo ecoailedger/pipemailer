@@ -1,5 +1,121 @@
 import { formatCurrency, formatDate, normalizeDateValue } from '../utils/formatters.js';
 
+function escapeHtml(v) {
+  return String(v ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+function buildThreadMessages(email) {
+  if (Array.isArray(email.thread) && email.thread.length) return email.thread;
+  return [{ from: email.from || 'Unknown sender', at: email.date || new Date().toISOString(), body: email.body || '' }];
+}
+
+function ensureWidgetReinit($el, widgetName) {
+  if (!$el.length) return;
+  const instance = $el[widgetName]('instance');
+  if (instance) instance.dispose();
+}
+
+function initializeThreadTab(state, deps) {
+  const $ = window.jQuery;
+  if (state.rightPanelMode !== 'email' || !state.selectedEmailId) return;
+  if (!$('#threadMessages').length) return;
+
+  const email = state.emails.find((e) => e.id === state.selectedEmailId);
+  if (!email) return;
+
+  if (!Array.isArray(email.thread) || !email.thread.length) email.thread = buildThreadMessages(email);
+  const threadMessages = email.thread;
+  const renderApp = typeof deps.rerender === 'function' ? deps.rerender : () => {};
+  const notify = typeof deps.notify === 'function' ? deps.notify : (msg, type) => window.DevExpress?.ui?.notify?.(msg, type || 'success', 1800);
+
+  const messageCards = threadMessages.map((msg) => `<div class="thread-message"><div class="timeline-head"><strong>${escapeHtml(msg.from || 'Unknown')}</strong><span>${formatDate(msg.at || email.date)}</span></div><div>${escapeHtml(msg.body || '')}</div></div>`).join('');
+  $('#threadMessages').html(messageCards || '<div class="empty-state">No messages in this thread.</div>');
+
+  const defaultSubject = email.subject && email.subject.toLowerCase().startsWith('re:') ? email.subject : `Re: ${email.subject || '(No subject)'}`;
+  const prefillComposer = ({ includeAll = false } = {}) => {
+    const to = includeAll ? [email.to, email.from].filter(Boolean).join(', ') : (email.from || '');
+    const cc = includeAll ? (email.cc || '') : '';
+    $('#replyToField').dxTextBox('instance')?.option('value', to);
+    $('#replyCcField').dxTextBox('instance')?.option('value', cc);
+    $('#replySubjectField').dxTextBox('instance')?.option('value', defaultSubject);
+    $('#replyArea').dxTextArea('instance')?.option('value', '');
+  };
+
+  ['#replyBtn', '#replyAllBtn', '#archiveBtn', '#sendReply'].forEach((selector) => ensureWidgetReinit($(selector), 'dxButton'));
+  ['#replyToField', '#replyCcField', '#replySubjectField'].forEach((selector) => ensureWidgetReinit($(selector), 'dxTextBox'));
+  ensureWidgetReinit($('#replyArea'), 'dxTextArea');
+
+  $('#replyToField').dxTextBox({ label: 'To', labelMode: 'floating', value: email.from || '' });
+  $('#replyCcField').dxTextBox({ label: 'Cc', labelMode: 'floating', value: '' });
+  $('#replySubjectField').dxTextBox({ label: 'Subject', labelMode: 'floating', value: defaultSubject });
+  $('#replyArea').dxTextArea({ label: 'Reply', labelMode: 'floating', minHeight: 110, value: '' });
+
+  $('#replyBtn').dxButton({
+    text: 'Reply',
+    icon: 'undo',
+    onClick: () => {
+      state.composerMode = 'reply';
+      prefillComposer({ includeAll: false });
+    }
+  });
+  $('#replyAllBtn').dxButton({
+    text: 'Reply all',
+    icon: 'group',
+    stylingMode: 'outlined',
+    onClick: () => {
+      state.composerMode = 'reply-all';
+      prefillComposer({ includeAll: true });
+    }
+  });
+  $('#archiveBtn').dxButton({
+    text: 'Archive',
+    icon: 'box',
+    stylingMode: 'outlined',
+    onClick: () => {
+      state.archiveEmail(email.id);
+      renderApp();
+      notify('Email archived');
+    }
+  });
+  $('#sendReply').dxButton({
+    text: 'Send reply',
+    type: 'success',
+    onClick: () => {
+      const to = ($('#replyToField').dxTextBox('instance')?.option('value') || '').trim();
+      const cc = ($('#replyCcField').dxTextBox('instance')?.option('value') || '').trim();
+      const subject = ($('#replySubjectField').dxTextBox('instance')?.option('value') || defaultSubject).trim();
+      const body = ($('#replyArea').dxTextArea('instance')?.option('value') || '').trim();
+      if (!body) { notify('Reply body cannot be empty', 'warning'); return; }
+      const now = new Date().toISOString();
+      const outbound = { from: 'You', at: now, body };
+      email.thread = (Array.isArray(email.thread) ? email.thread : buildThreadMessages(email)).concat([outbound]);
+      email.isRead = true;
+      state.emails.unshift({
+        id: Date.now(),
+        folder: 'sent',
+        from: 'You',
+        to,
+        cc,
+        subject: subject || defaultSubject,
+        snippet: body.slice(0, 90),
+        date: now,
+        isRead: true,
+        isStarred: false,
+        dealId: email.dealId || null,
+        body,
+        thread: email.thread.slice()
+      });
+      renderApp();
+      notify('Reply sent');
+    }
+  });
+}
+
 function getStageSummary(state) {
   return state.pipelineStages.map((stage) => {
     const deals = state.deals.filter((d) => d.stage === stage);
@@ -60,7 +176,14 @@ export function renderRightPanel(state, deps) {
       if (item.title === 'Activity') return `<div class="card-body" id="dealTimelineWrap">${renderTimelineHtml(state)}</div>`;
       return '<div class="card-body"><div id="dealHealthGrid"></div><div id="dealActivityAccordion" class="mt-4"></div></div>';
     },
-    onContentReady: () => deps.bindRightPanelInteractions()
+    onSelectionChanged: () => {
+      deps.bindRightPanelInteractions();
+      initializeThreadTab(state, deps);
+    },
+    onContentReady: () => {
+      deps.bindRightPanelInteractions();
+      initializeThreadTab(state, deps);
+    }
   });
 
   const title = state.rightPanelMode === 'email' ? (state.emails.find((e) => e.id === state.selectedEmailId) || {}).subject : (state.deals.find((d) => d.id === state.selectedDealId) || {}).title;
