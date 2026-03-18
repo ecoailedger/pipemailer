@@ -26,6 +26,9 @@ const SLA_LABELS = {
  *  showComposer: boolean,
  *  onStartReply: (mode: 'reply' | 'replyAll') => void,
  *  onLinkDeal: (payload: { emailId: number, dealId: number }) => void,
+ *  macroTemplates?: Array<{id:string,title:string,category:string,body:string,isArchived?:boolean}>,
+ *  macroContext?: {customerName?:string,orderNumber?:string,rmaNumber?:string},
+ *  onUseMacro?: (templateId: string) => void,
  *  onDraftChange: (field: 'to'|'cc'|'subject'|'body', value: string) => void,
  *  onSendReply: () => void,
  *  onCancelReply: () => void
@@ -39,6 +42,9 @@ export default function ThreadView({
   showComposer,
   onStartReply,
   onLinkDeal,
+  macroTemplates,
+  macroContext,
+  onUseMacro,
   onDraftChange,
   onSendReply,
   onCancelReply
@@ -99,7 +105,15 @@ export default function ThreadView({
       />
 
       {showComposer ? (
-        <ReplyComposer draft={draft} onChange={onDraftChange} onSend={onSendReply} onCancel={onCancelReply} />
+        <ReplyComposer
+          draft={draft}
+          macroTemplates={macroTemplates}
+          macroContext={macroContext}
+          onUseMacro={onUseMacro}
+          onChange={onDraftChange}
+          onSend={onSendReply}
+          onCancel={onCancelReply}
+        />
       ) : null}
     </div>
   );

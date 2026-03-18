@@ -13,6 +13,42 @@ export const initialEmails = buildMockEmails(emailCount, DEV_SEED);
 
 export const pipelineStages = MOCK_PIPELINE_STAGES;
 
+export const macroCategories = [
+  { id: 'returns', label: 'Returns' },
+  { id: 'shipping', label: 'Shipping' },
+  { id: 'billing', label: 'Billing' }
+];
+
+export const initialMacroTemplates = [
+  {
+    id: 'macro-rma-followup',
+    title: 'RMA Follow-up',
+    category: 'returns',
+    body: 'Hi {{customer_name}},\n\nYour return request is active. RMA {{rma_number}} is linked to order {{order_number}}.\n\nPlease reply if you need anything else.\n\nBest,\nSupport Team',
+    isArchived: false,
+    createdAt: '2026-01-10T09:00:00.000Z',
+    updatedAt: '2026-01-10T09:00:00.000Z'
+  },
+  {
+    id: 'macro-order-check',
+    title: 'Order Verification',
+    category: 'shipping',
+    body: 'Hi {{customer_name}},\n\nWe are reviewing order {{order_number}} and will send a tracking update shortly.\n\nThanks for your patience.',
+    isArchived: false,
+    createdAt: '2026-01-11T10:30:00.000Z',
+    updatedAt: '2026-01-11T10:30:00.000Z'
+  },
+  {
+    id: 'macro-billing-escalation',
+    title: 'Billing Escalation',
+    category: 'billing',
+    body: 'Hi {{customer_name}},\n\nI escalated your billing case connected to order {{order_number}}. We will follow up within one business day.',
+    isArchived: false,
+    createdAt: '2026-01-14T12:15:00.000Z',
+    updatedAt: '2026-01-14T12:15:00.000Z'
+  }
+];
+
 /**
  * @typedef {'email' | 'pipeline' | 'dashboard'} AppView
  */
@@ -44,6 +80,9 @@ export const initialState = {
   deals: initialDeals,
   returnCases: [],
   pipelineStages,
+  macroCategories,
+  macroTemplates: initialMacroTemplates,
+  macroUsageLog: [],
   replyDrafts: {},
   popups: {
     compose: false,

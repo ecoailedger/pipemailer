@@ -9,6 +9,26 @@ function getEscalatedPriority(priority = 'medium') {
   return PRIORITY_ORDER[currentIndex + 1];
 }
 
+
+function createMacroTemplate(template, fallbackIndex = 0) {
+  const timestamp = new Date().toISOString();
+  const slug = (template.title ?? `macro-${fallbackIndex + 1}`)
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || `macro-${fallbackIndex + 1}`;
+
+  return {
+    id: template.id || `${slug}-${Date.now()}`,
+    title: String(template.title ?? '').trim(),
+    category: String(template.category ?? '').trim(),
+    body: String(template.body ?? '').trim(),
+    isArchived: Boolean(template.isArchived),
+    createdAt: template.createdAt || timestamp,
+    updatedAt: timestamp
+  };
+}
+
 function reducer(state, action) {
   const withAssignment = (email, assigneeId) => {
     const assignedAt = assigneeId ? new Date().toISOString() : null;
@@ -343,6 +363,58 @@ function reducer(state, action) {
         )
       };
     }
+
+    case 'createMacroTemplate': {
+      const nextTemplate = createMacroTemplate(action.payload, state.macroTemplates.length);
+      if (!nextTemplate.title || !nextTemplate.category || !nextTemplate.body) return state;
+      return {
+        ...state,
+        macroTemplates: [nextTemplate, ...state.macroTemplates]
+      };
+    }
+    case 'updateMacroTemplate': {
+      const { id, title, category, body } = action.payload ?? {};
+      if (!id) return state;
+      return {
+        ...state,
+        macroTemplates: state.macroTemplates.map((template) =>
+          template.id === id
+            ? {
+                ...template,
+                title: String(title ?? template.title).trim(),
+                category: String(category ?? template.category).trim(),
+                body: String(body ?? template.body).trim(),
+                updatedAt: new Date().toISOString()
+              }
+            : template
+        )
+      };
+    }
+    case 'archiveMacroTemplate': {
+      const { id, isArchived = true } = action.payload ?? {};
+      if (!id) return state;
+      return {
+        ...state,
+        macroTemplates: state.macroTemplates.map((template) =>
+          template.id === id
+            ? {
+                ...template,
+                isArchived,
+                updatedAt: new Date().toISOString()
+              }
+            : template
+        )
+      };
+    }
+    case 'trackMacroUsage': {
+      const { templateId, emailId = null, userId = state.currentUserId, insertedAt = new Date().toISOString() } = action.payload ?? {};
+      if (!templateId) return state;
+      const usageEvent = { templateId, emailId, userId, insertedAt };
+      return {
+        ...state,
+        macroUsageLog: [usageEvent, ...state.macroUsageLog]
+      };
+    }
     case 'showToast':
       return { ...state, toast: { visible: true, message: action.payload } };
     case 'hideToast':
@@ -384,6 +456,10 @@ export function useAppStore() {
       updateEmailPriority: (payload) => dispatch({ type: 'updateEmailPriority', payload }),
       escalateSlaBreach: (payload) => dispatch({ type: 'escalateSlaBreach', payload }),
       bulkEscalateSlaBreaches: (payload) => dispatch({ type: 'bulkEscalateSlaBreaches', payload }),
+      createMacroTemplate: (payload) => dispatch({ type: 'createMacroTemplate', payload }),
+      updateMacroTemplate: (payload) => dispatch({ type: 'updateMacroTemplate', payload }),
+      archiveMacroTemplate: (payload) => dispatch({ type: 'archiveMacroTemplate', payload }),
+      trackMacroUsage: (payload) => dispatch({ type: 'trackMacroUsage', payload }),
       showToast: (message) => dispatch({ type: 'showToast', payload: message }),
       hideToast: () => dispatch({ type: 'hideToast' })
     }),

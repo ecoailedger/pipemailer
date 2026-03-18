@@ -38,7 +38,60 @@ export function selectEmailsWithSla(emails, now = new Date()) {
   }));
 }
 
-export function buildDashboardMetrics(deals, emails, pipelineStages, now = new Date()) {
+export function buildMacroAnalytics(macroTemplates = [], macroUsageLog = [], now = new Date()) {
+  const templateMap = new Map(macroTemplates.map((template) => [template.id, template]));
+  const usageByTemplate = new Map();
+  const usageByCategory = new Map();
+  const reviewers = new Set();
+  const last30Cutoff = now.getTime() - 30 * 24 * 60 * 60 * 1000;
+  let recentUsageCount = 0;
+
+  for (const event of macroUsageLog) {
+    const template = templateMap.get(event.templateId);
+    if (!template) continue;
+
+    const usageTime = normalizeDateValue(event.insertedAt)?.getTime() ?? 0;
+    if (usageTime >= last30Cutoff) {
+      recentUsageCount += 1;
+    }
+
+    reviewers.add(event.userId || 'unknown');
+
+    const templateUsage = usageByTemplate.get(template.id) ?? {
+      templateId: template.id,
+      title: template.title,
+      category: template.category,
+      usageCount: 0,
+      lastUsedAt: null,
+      archived: Boolean(template.isArchived)
+    };
+
+    templateUsage.usageCount += 1;
+    if (!templateUsage.lastUsedAt || usageTime > normalizeDateValue(templateUsage.lastUsedAt)?.getTime()) {
+      templateUsage.lastUsedAt = event.insertedAt;
+    }
+    usageByTemplate.set(template.id, templateUsage);
+
+    usageByCategory.set(template.category, (usageByCategory.get(template.category) ?? 0) + 1);
+  }
+
+  const sortedTemplateUsage = Array.from(usageByTemplate.values()).sort((a, b) => b.usageCount - a.usageCount);
+
+  return {
+    totalMacros: macroTemplates.length,
+    activeMacros: macroTemplates.filter((template) => !template.isArchived).length,
+    archivedMacros: macroTemplates.filter((template) => template.isArchived).length,
+    totalMacroUsages: macroUsageLog.length,
+    recentMacroUsages: recentUsageCount,
+    uniqueReviewers: reviewers.size,
+    templateUsage: sortedTemplateUsage,
+    categoryUsage: Array.from(usageByCategory.entries())
+      .map(([category, usageCount]) => ({ category, usageCount }))
+      .sort((a, b) => b.usageCount - a.usageCount)
+  };
+}
+
+export function buildDashboardMetrics(deals, emails, pipelineStages, now = new Date(), macroTemplates = [], macroUsageLog = []) {
   const totalsByStage = new Map(
     pipelineStages.map((stage) => [
       stage,
@@ -100,6 +153,7 @@ export function buildDashboardMetrics(deals, emails, pipelineStages, now = new D
   ];
 
   const emailsWithSla = selectEmailsWithSla(emails, now);
+  const macroAnalytics = buildMacroAnalytics(macroTemplates, macroUsageLog, now);
 
   return {
     totalDeals: deals.length,
@@ -113,6 +167,7 @@ export function buildDashboardMetrics(deals, emails, pipelineStages, now = new D
     inboxEmailCount: emails.filter((email) => email.folder === 'inbox').length,
     sentEmailCount: emails.filter((email) => email.folder === 'sent').length,
     atRiskEmailCount: emailsWithSla.filter((email) => email.computedSlaStatus === 'atRisk').length,
-    overdueEmailCount: emailsWithSla.filter((email) => ['overdue', 'breached'].includes(email.computedSlaStatus)).length
+    overdueEmailCount: emailsWithSla.filter((email) => ['overdue', 'breached'].includes(email.computedSlaStatus)).length,
+    macroAnalytics
   };
 }

@@ -111,8 +111,8 @@ export default function App() {
   }, [selectedEmail, state.returnCases]);
 
   const dashboardMetrics = useMemo(
-    () => buildDashboardMetrics(state.deals, emailsWithSla, state.pipelineStages),
-    [state.deals, emailsWithSla, state.pipelineStages]
+    () => buildDashboardMetrics(state.deals, emailsWithSla, state.pipelineStages, new Date(), state.macroTemplates, state.macroUsageLog),
+    [state.deals, emailsWithSla, state.pipelineStages, state.macroTemplates, state.macroUsageLog]
   );
 
   return (
@@ -174,7 +174,16 @@ export default function App() {
                 onSelectDeal={actions.selectDeal}
               />
             ) : (
-              <DashboardView dashboardMetrics={dashboardMetrics} emails={emailsWithSla} deals={searchableDeals} />
+              <DashboardView
+                dashboardMetrics={dashboardMetrics}
+                emails={emailsWithSla}
+                deals={searchableDeals}
+                macroTemplates={state.macroTemplates}
+                macroCategories={state.macroCategories}
+                onCreateMacro={actions.createMacroTemplate}
+                onUpdateMacro={actions.updateMacroTemplate}
+                onArchiveMacro={actions.archiveMacroTemplate}
+              />
             )}
           </section>
         }
@@ -192,6 +201,8 @@ export default function App() {
               onLinkDeal={actions.linkEmailToDeal}
               assignees={state.assignees}
               resolveAssigneeName={(assigneeId) => assigneeLookup[assigneeId] ?? 'Unassigned'}
+              macroTemplates={state.macroTemplates}
+              onUseMacro={({ templateId, emailId }) => actions.trackMacroUsage({ templateId, emailId })}
               onAssign={actions.reassignEmail}
             />
           </section>

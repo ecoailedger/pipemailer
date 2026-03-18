@@ -18,6 +18,8 @@ const EMPTY_DRAFT = { to: '', cc: '', subject: '', body: '' };
  *  onLinkDeal: (payload: { emailId: number, dealId: number }) => void,
  *  assignees: Array<{id:string,name:string}>,
  *  resolveAssigneeName: (assigneeId?:string|null) => string,
+ *  macroTemplates: Array<{id:string,title:string,category:string,body:string,isArchived?:boolean}>,
+ *  onUseMacro: (payload: {templateId:string,emailId:number|null}) => void,
  *  onAssign: (payload: {emailId:number,assigneeId:string}) => void
  * }} props
  */
@@ -33,12 +35,20 @@ export default function RightPanel({
   onLinkDeal,
   assignees,
   resolveAssigneeName,
+  macroTemplates,
+  onUseMacro,
   onAssign
 }) {
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [selectedAssigneeId, setSelectedAssigneeId] = useState('');
 
   const composerDraft = useMemo(() => draft ?? EMPTY_DRAFT, [draft]);
+  const macroContext = useMemo(() => ({
+    customerName: selectedEmail?.from || selectedEmail?.to || 'Customer',
+    orderNumber: selectedReturnCase?.orderNumber || 'ORDER-UNKNOWN',
+    rmaNumber: selectedReturnCase?.rmaNumber || 'RMA-UNKNOWN'
+  }), [selectedEmail, selectedReturnCase]);
+
 
   const openComposerFor = (mode) => {
     if (!selectedEmail) return;
@@ -100,6 +110,9 @@ export default function RightPanel({
           showComposer={isComposerOpen}
           onStartReply={openComposerFor}
           onLinkDeal={onLinkDeal}
+          macroTemplates={macroTemplates}
+          macroContext={macroContext}
+          onUseMacro={(templateId) => onUseMacro({ templateId, emailId: selectedEmail?.id ?? null })}
           onDraftChange={updateDraft}
           onSendReply={sendReply}
           onCancelReply={cancelReply}
