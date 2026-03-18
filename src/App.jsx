@@ -5,6 +5,9 @@ import SidebarNav from './features/nav/SidebarNav.jsx';
 import EmailListView from './features/email/EmailListView.jsx';
 import PipelineView from './features/pipeline/PipelineView.jsx';
 import RightPanel from './features/details/RightPanel.jsx';
+import ComposePopup from './features/popups/ComposePopup.jsx';
+import DealPopup from './features/popups/DealPopup.jsx';
+import LinkPopup from './features/popups/LinkPopup.jsx';
 import { useAppStore } from './state/useAppStore';
 
 const themeVars = {
@@ -131,6 +134,26 @@ export default function App() {
             />
           </section>
         }
+      />
+      <ComposePopup
+        open={state.popups.compose}
+        onClose={() => actions.setPopupOpen('compose', false)}
+        onSave={actions.saveCompose}
+      />
+      <DealPopup
+        open={state.popups.deal}
+        stages={state.pipelineStages}
+        onClose={() => actions.setPopupOpen('deal', false)}
+        onSave={actions.saveDeal}
+      />
+      <LinkPopup
+        open={state.popups.link}
+        emails={state.emails}
+        deals={state.deals}
+        defaultEmailId={state.selectedEmailId}
+        defaultDealId={state.selectedDealId}
+        onClose={() => actions.setPopupOpen('link', false)}
+        onSave={actions.saveLink}
       />
     </div>
   );
