@@ -165,3 +165,49 @@
 .status-onTrack { background: color-mix(in srgb, var(--green) 16%, transparent); color: var(--green); }
 .status-atRisk { background: color-mix(in srgb, var(--amber) 16%, transparent); color: var(--amber); }
 .status-overdue, .status-breached { background: color-mix(in srgb, var(--red) 16%, transparent); color: var(--red); }
+
+.composer-textarea-label {
+  display: block;
+  margin: 4px 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.composer-textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  padding: 10px;
+  min-height: 120px;
+  resize: vertical;
+}
+
+.macro-kpis {
+  margin-bottom: 10px;
+}
+
+.macro-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.macro-input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  padding: 8px 10px;
+}
+
+.macro-body {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.macro-list {
+  margin-top: 10px;
+}
