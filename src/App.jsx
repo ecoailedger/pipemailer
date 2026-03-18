@@ -10,6 +10,7 @@ import ComposePopup from './features/popups/ComposePopup.jsx';
 import DealPopup from './features/popups/DealPopup.jsx';
 import LinkPopup from './features/popups/LinkPopup.jsx';
 import { useAppStore } from './state/useAppStore';
+import { buildDashboardMetrics } from './features/dashboard/selectors';
 
 const themeVars = {
   light: {},
@@ -72,6 +73,11 @@ export default function App() {
     [state.deals, state.selectedDealId]
   );
 
+  const dashboardMetrics = useMemo(
+    () => buildDashboardMetrics(state.deals, state.emails, state.pipelineStages),
+    [state.deals, state.emails, state.pipelineStages]
+  );
+
   return (
     <div style={themeVars[state.themeMode]}>
       <AppShell
@@ -120,7 +126,7 @@ export default function App() {
                 onSelectDeal={actions.selectDeal}
               />
             ) : (
-              <DashboardView deals={state.deals} emails={state.emails} pipelineStages={state.pipelineStages} />
+              <DashboardView dashboardMetrics={dashboardMetrics} />
             )}
           </section>
         }
