@@ -153,3 +153,15 @@
     align-items: flex-start;
   }
 }
+
+
+.email-item.is-overdue { border-left: 3px solid var(--red); background: color-mix(in srgb, var(--red) 6%, var(--bg-surface)); }
+.email-chip-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 6px; }
+.sla-badge { display: inline-flex; align-items: center; border-radius: 999px; padding: 2px 8px; font-size: 11px; border: 1px solid transparent; }
+.priority-low { background: color-mix(in srgb, var(--text-muted) 16%, transparent); color: var(--text-secondary); }
+.priority-medium { background: var(--accent-dim); color: var(--accent); }
+.priority-high { background: color-mix(in srgb, var(--amber) 16%, transparent); color: var(--amber); }
+.priority-urgent { background: color-mix(in srgb, var(--red) 16%, transparent); color: var(--red); }
+.status-onTrack { background: color-mix(in srgb, var(--green) 16%, transparent); color: var(--green); }
+.status-atRisk { background: color-mix(in srgb, var(--amber) 16%, transparent); color: var(--amber); }
+.status-overdue, .status-breached { background: color-mix(in srgb, var(--red) 16%, transparent); color: var(--red); }

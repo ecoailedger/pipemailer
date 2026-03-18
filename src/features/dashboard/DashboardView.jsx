@@ -7,7 +7,9 @@ const KPI_ITEMS = [
   { key: 'winRate', label: 'Win Rate', format: (value) => `${(value * 100).toFixed(1)}%` },
   { key: 'avgDealValue', label: 'Avg Deal Value', format: (value) => formatCurrency(value) },
   { key: 'activeDeals', label: 'Active Deals', format: (value) => String(value) },
-  { key: 'unlinkedEmailCount', label: 'Unlinked Emails', format: (value) => String(value) }
+  { key: 'unlinkedEmailCount', label: 'Unlinked Emails', format: (value) => String(value) },
+  { key: 'atRiskEmailCount', label: 'SLA At Risk', format: (value) => String(value) },
+  { key: 'overdueEmailCount', label: 'SLA Overdue', format: (value) => String(value) }
 ];
 
 function getEmailSortValue(email) {
@@ -31,7 +33,9 @@ function getDealSortValue(deal) {
  *    winRate: number,
  *    avgDealValue: number,
  *    activeDeals: number,
- *    unlinkedEmailCount: number
+ *    unlinkedEmailCount: number,
+ *    atRiskEmailCount: number,
+ *    overdueEmailCount: number
  *  },
  *  emails: Array<{ id: number, subject: string, from: string, date: string, dealId?: number | null }>,
  *  deals: Array<{ id: number, title: string, stage: string, days?: number, createdAt?: string, updatedAt?: string }>

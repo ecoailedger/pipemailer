@@ -91,6 +91,32 @@ function createThread(email, rng, sentAt) {
   return thread;
 }
 
+
+function buildSlaFields(rng, sentAt, isSentOrDraft) {
+  const priority = pick(rng, ['low', 'medium', 'high', 'urgent']);
+
+  if (isSentOrDraft) {
+    return {
+      firstResponseDueAt: null,
+      resolutionDueAt: null,
+      priority,
+      slaStatus: 'onTrack',
+      slaEscalations: []
+    };
+  }
+
+  const firstResponseDueAt = new Date(sentAt.getTime() + pick(rng, [2, 4, 8, 16]) * 60 * 60 * 1000).toISOString();
+  const resolutionDueAt = new Date(sentAt.getTime() + pick(rng, [1, 2, 3, 5]) * DAY_MS).toISOString();
+
+  return {
+    firstResponseDueAt,
+    resolutionDueAt,
+    priority,
+    slaStatus: 'onTrack',
+    slaEscalations: []
+  };
+}
+
 function maybeAssign(rng, sentAt) {
   if (rng() < 0.35) {
     return { assigneeId: null, assignedAt: null, assignmentHistory: [] };
@@ -170,7 +196,8 @@ export function buildMockEmails(count, seed) {
       dealId: linkedDealId,
       body: `This is deterministic mock email #${id} for ${subject.toLowerCase()}.`,
       thread: createThread({ from: isSentOrDraft ? person : 'You', subject }, rng, sentAt),
-      ...maybeAssign(rng, sentAt)
+      ...maybeAssign(rng, sentAt),
+      ...buildSlaFields(rng, sentAt, isSentOrDraft)
     };
 
     if (!isSentOrDraft) {
