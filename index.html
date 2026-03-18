@@ -23,8 +23,8 @@
     .logo { font-weight: 700; font-size: 20px; letter-spacing: .3px; }
     .logo span { color: var(--accent); }
     .top-actions { display: flex; gap: 12px; justify-content: flex-end; }
-    .content { flex: 1; min-height: 0; display: grid; grid-template-columns: 280px minmax(420px, 1fr) 500px; }
-    .panel { border-right: 1px solid var(--border-subtle); background: var(--bg-surface); min-height: 0; }
+    .content { flex: 1; min-height: 0; display: grid; grid-template-columns: 280px minmax(420px, 1fr) 500px; overflow: hidden; }
+    .panel { border-right: 1px solid var(--border-subtle); background: var(--bg-surface); min-height: 0; overflow: auto; }
     .panel:last-child { border-right: none; border-left: 1px solid var(--border-subtle); }
     .section-title { margin: 18px 16px 8px; font: 500 12px var(--font-mono); color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; }
     #folders, #pipelineStages { margin: 0 8px; }
@@ -74,6 +74,70 @@
     .dx-list, .dx-popup-content, .dx-scrollable-content { background: var(--bg-surface)!important; }
     .dx-texteditor { background: var(--bg-elevated)!important; border-color: var(--border)!important; }
     .dx-button-mode-contained.dx-button-success { background-color: var(--accent)!important; color: var(--bg-base)!important; }
+    .compose-actions { display:flex; gap:8px; margin-top:12px; position: sticky; bottom: 0; background: linear-gradient(to top, var(--bg-surface) 75%, transparent); padding-top: 8px; }
+    .timeline-filter-row { position: sticky; top: 0; z-index: 2; background: var(--bg-surface); padding-bottom: 6px; }
+    #emailListContainer, #detailTabs { min-height: 0; }
+
+    @media (max-width: 1440px) {
+      .content { grid-template-columns: 260px minmax(380px, 1fr) 430px; }
+    }
+
+    @media (max-width: 1200px) {
+      .topbar { grid-template-columns: 180px 1fr 160px; gap: 12px; }
+      .content { grid-template-columns: 240px minmax(340px, 1fr) 340px; }
+    }
+
+    @media (max-width: 992px) {
+      .topbar { grid-template-columns: 1fr auto; grid-template-areas: "logo actions" "search search"; height: auto; }
+      .logo { grid-area: logo; }
+      #searchBox { grid-area: search; min-width: 0; }
+      .top-actions { grid-area: actions; gap: 8px; }
+      .content { grid-template-columns: 88px minmax(0, 1fr) 320px; }
+      .content > .panel:first-child { padding-top: 6px; }
+      .content > .panel:first-child .section-title,
+      .content > .panel:first-child .insights-card,
+      .content > .panel:first-child #stageChart { display: none; }
+      .content > .panel:first-child .view-toggle,
+      .content > .panel:first-child .action-grid { margin: 8px 6px 0; }
+      .content > .panel:first-child .dx-button { width: 100%; min-width: 0; }
+      .content > .panel:first-child .dx-button-content { padding-left: 6px; padding-right: 6px; }
+      .content > .panel:first-child .dx-button-text { display: none; }
+      .right-header { position: sticky; top: 0; z-index: 3; background: var(--bg-surface); }
+    }
+
+    @media (max-width: 768px) {
+      body { height: auto; min-height: 100vh; overflow: auto; }
+      .app-shell { min-height: 100vh; height: auto; }
+      .topbar { position: sticky; top: 0; z-index: 10; }
+      .content {
+        grid-template-columns: 88px minmax(0, 1fr);
+        grid-template-rows: minmax(380px, 1fr) auto;
+        overflow: visible;
+      }
+      .content > .panel:nth-child(3) {
+        grid-column: 1 / -1;
+        border-left: none;
+        border-top: 1px solid var(--border-subtle);
+        max-height: none;
+      }
+      #detailTabs { height: auto; min-height: 420px; }
+    }
+
+    @media (max-width: 560px) {
+      .content { grid-template-columns: 1fr; grid-template-rows: auto auto auto; }
+      .content > .panel { border-right: none; border-bottom: 1px solid var(--border-subtle); }
+      .content > .panel:first-child {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 6px;
+        padding: 8px;
+      }
+      .content > .panel:first-child #folders,
+      .content > .panel:first-child #pipelineStages { grid-column: 1 / -1; }
+      .content > .panel:first-child .view-toggle,
+      .content > .panel:first-child .action-grid { display: contents; }
+      .content > .panel:first-child .dx-button-text { display: inline; }
+    }
   </style>
 </head>
 <body>
@@ -612,7 +676,7 @@ $(function(){
       }
     },
     contentTemplate:function(c){
-      c.append('<div id="emailModeField"></div><div id="senderField" style="margin-top:10px"></div><div id="subField" style="margin-top:10px"></div><div id="rawBodyField" style="margin-top:10px"></div><div id="smartPreview"></div><div id="linkDeal" style="margin-top:10px"></div><div class="composer-hint">Shortcut: Ctrl/Cmd + Enter to save, Esc to close.</div><div style="display:flex; gap:8px; margin-top:12px;"><div id="cancelEmailBtn"></div><div id="saveEmailBtn"></div></div>');
+      c.append('<div id="emailModeField"></div><div id="senderField" style="margin-top:10px"></div><div id="subField" style="margin-top:10px"></div><div id="rawBodyField" style="margin-top:10px"></div><div id="smartPreview"></div><div id="linkDeal" style="margin-top:10px"></div><div class="composer-hint">Shortcut: Ctrl/Cmd + Enter to save, Esc to close.</div><div class="compose-actions"><div id="cancelEmailBtn"></div><div id="saveEmailBtn"></div></div>');
       var draft = JSON.parse(sessionStorage.getItem(AppState.addEmailDraftKey)||'{}');
       function saveDraft(){
         var payload = {
