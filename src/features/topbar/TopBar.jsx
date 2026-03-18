@@ -1,5 +1,6 @@
 import Button from 'devextreme-react/button';
 import TextBox from 'devextreme-react/text-box';
+import { useEffect, useState } from 'react';
 
 /**
  * @param {{
@@ -27,6 +28,23 @@ export default function TopBar({
   onSwitchToPipeline,
   onSwitchToDashboard
 }) {
+  const [isCompactTopbar, setIsCompactTopbar] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    const mediaQuery = window.matchMedia('(max-width: 768px)');
+    const syncCompactMode = () => setIsCompactTopbar(mediaQuery.matches);
+    syncCompactMode();
+
+    mediaQuery.addEventListener('change', syncCompactMode);
+    return () => mediaQuery.removeEventListener('change', syncCompactMode);
+  }, []);
+
+  const emailViewLabel = isCompactTopbar ? 'Email' : 'Email View';
+  const pipelineViewLabel = isCompactTopbar ? 'Pipeline' : 'Pipeline View';
+  const dashboardLabel = 'Dashboard';
+
   return (
     <header className="topbar">
       <div className="logo">
@@ -41,12 +59,31 @@ export default function TopBar({
         onValueChanged={(e) => onSearchChange(e.value ?? '')}
       />
       <div className="top-actions">
-        <Button text="Email View" type={view === 'email' ? 'default' : 'normal'} stylingMode="outlined" onClick={onSwitchToEmail} />
-        <Button text="Pipeline View" type={view === 'pipeline' ? 'default' : 'normal'} stylingMode="outlined" onClick={onSwitchToPipeline} />
-        <Button text="Dashboard" type={view === 'dashboard' ? 'default' : 'normal'} stylingMode="outlined" onClick={onSwitchToDashboard} />
-        <Button text="Add Email" type="default" stylingMode="contained" onClick={onCompose} />
-        <Button text="Add Deal / Return" stylingMode="outlined" onClick={onCreateDeal} />
         <Button
+          className="topbar-btn topbar-btn--view"
+          text={emailViewLabel}
+          type={view === 'email' ? 'default' : 'normal'}
+          stylingMode="outlined"
+          onClick={onSwitchToEmail}
+        />
+        <Button
+          className="topbar-btn topbar-btn--view"
+          text={pipelineViewLabel}
+          type={view === 'pipeline' ? 'default' : 'normal'}
+          stylingMode="outlined"
+          onClick={onSwitchToPipeline}
+        />
+        <Button
+          className="topbar-btn topbar-btn--view"
+          text={dashboardLabel}
+          type={view === 'dashboard' ? 'default' : 'normal'}
+          stylingMode="outlined"
+          onClick={onSwitchToDashboard}
+        />
+        <Button className="topbar-btn topbar-btn--add-email" text="Add Email" type="default" stylingMode="contained" onClick={onCompose} />
+        <Button className="topbar-btn topbar-btn--add-deal" text="Add Deal / Return" stylingMode="outlined" onClick={onCreateDeal} />
+        <Button
+          className="topbar-btn topbar-btn--theme"
           text={themeMode === 'light' ? 'Dark' : 'Light'}
           icon="contrast"
           stylingMode="outlined"
