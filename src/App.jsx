@@ -125,9 +125,12 @@ export default function App() {
             <RightPanel
               selectedEmail={selectedEmail}
               selectedDeal={selectedDeal}
-              onCompose={() => actions.setPopupOpen('compose', true)}
-              onCreateDeal={() => actions.setPopupOpen('deal', true)}
-              onLinkEmail={() => actions.setPopupOpen('link', true)}
+              deals={state.deals}
+              draft={selectedEmail ? state.replyDrafts[selectedEmail.id] ?? null : null}
+              onSetDraft={actions.setReplyDraft}
+              onClearDraft={actions.clearReplyDraft}
+              onReply={actions.replyToEmail}
+              onLinkDeal={actions.linkEmailToDeal}
             />
           </section>
         }
