@@ -37,6 +37,8 @@ export function renderApp() {
   }
   renderRightPanel(AppState, {
     onSelectDeal: (id) => { AppState.selectDeal(id); renderApp(); },
+    rerender: renderApp,
+    notify,
     bindRightPanelInteractions: () => {
       if ($('#addNoteBtn').length) $('#addNoteBtn').dxButton({ text: 'Add note', onClick: () => $('#notePopup').dxPopup('instance').show() });
       if ($('#linkBtn').length) $('#linkBtn').dxButton({ text: 'Link Email', stylingMode: 'text', onClick: () => $('#linkPopup').dxPopup('instance').show() });
