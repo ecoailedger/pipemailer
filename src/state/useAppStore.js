@@ -18,7 +18,7 @@ function reducer(state, action) {
       return {
         ...state,
         selectedEmailId: action.payload,
-        selectedDealId: email?.dealId ?? null,
+        selectedDealId: email?.dealId ?? state.selectedDealId,
         view: 'email'
       };
     }
@@ -32,6 +32,67 @@ function reducer(state, action) {
           [action.payload.name]: action.payload.open
         }
       };
+    case 'saveCompose': {
+      if (!action.payload.body?.trim()) return state;
+      const nextId = Math.max(...state.emails.map((email) => email.id), 0) + 1;
+      const now = new Date().toISOString();
+      return {
+        ...state,
+        emails: [
+          {
+            id: nextId,
+            folder: 'sent',
+            from: 'You',
+            to: action.payload.to || 'Unknown recipient',
+            cc: '',
+            subject: action.payload.subject || '(No subject)',
+            snippet: action.payload.body.slice(0, 90),
+            date: now,
+            isRead: true,
+            isStarred: false,
+            dealId: state.selectedDealId,
+            body: action.payload.body,
+            thread: [{ from: 'You', at: now, body: action.payload.body }]
+          },
+          ...state.emails
+        ],
+        selectedFolder: 'sent',
+        selectedEmailId: nextId,
+        popups: { ...state.popups, compose: false }
+      };
+    }
+    case 'saveDeal': {
+      if (!action.payload.title?.trim() || !action.payload.contact?.trim()) return state;
+      const nextId = Math.max(...state.deals.map((deal) => deal.id), 0) + 1;
+      const deal = {
+        id: nextId,
+        title: action.payload.title.trim(),
+        contact: action.payload.contact.trim(),
+        value: Number(action.payload.value) || 0,
+        stage: action.payload.stage || state.pipelineStages[0],
+        probability: 25,
+        days: 1,
+        notes: ['Created from React popup']
+      };
+      return {
+        ...state,
+        deals: [deal, ...state.deals],
+        selectedDealId: nextId,
+        popups: { ...state.popups, deal: false },
+        view: 'pipeline'
+      };
+    }
+    case 'saveLink': {
+      const { emailId, dealId } = action.payload;
+      if (!emailId || !dealId) return state;
+      return {
+        ...state,
+        emails: state.emails.map((email) => (email.id === emailId ? { ...email, dealId } : email)),
+        selectedEmailId: emailId,
+        selectedDealId: dealId,
+        popups: { ...state.popups, link: false }
+      };
+    }
     case 'setLoading':
       return { ...state, showLoading: action.payload };
     case 'showToast':
@@ -56,6 +117,9 @@ export function useAppStore() {
       selectEmail: (emailId) => dispatch({ type: 'selectEmail', payload: emailId }),
       selectDeal: (dealId) => dispatch({ type: 'selectDeal', payload: dealId }),
       setPopupOpen: (name, open) => dispatch({ type: 'setPopupOpen', payload: { name, open } }),
+      saveCompose: (payload) => dispatch({ type: 'saveCompose', payload }),
+      saveDeal: (payload) => dispatch({ type: 'saveDeal', payload }),
+      saveLink: (payload) => dispatch({ type: 'saveLink', payload }),
       setLoading: (loading) => dispatch({ type: 'setLoading', payload: loading }),
       showToast: (message) => dispatch({ type: 'showToast', payload: message }),
       hideToast: () => dispatch({ type: 'hideToast' })

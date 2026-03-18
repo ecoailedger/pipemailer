@@ -62,6 +62,7 @@ export default function App() {
             selectedFolder={state.selectedFolder}
             pipelineStages={state.pipelineStages}
             selectedStage={state.selectedStage}
+            deals={state.deals}
             onFolderChange={(folder) => {
               actions.setSelectedFolder(folder);
               actions.setView('email');
@@ -76,12 +77,46 @@ export default function App() {
             <EmailListView emails={visibleEmails} selectedEmailId={state.selectedEmailId} onSelectEmail={actions.selectEmail} />
           )
         }
-        right={<RightPanel selectedEmail={selectedEmail} selectedDeal={selectedDeal} onCompose={() => actions.setPopupOpen('compose', true)} onCreateDeal={() => actions.setPopupOpen('deal', true)} />}
+        right={
+          <RightPanel
+            selectedEmail={selectedEmail}
+            selectedDeal={selectedDeal}
+            onCompose={() => actions.setPopupOpen('compose', true)}
+            onCreateDeal={() => actions.setPopupOpen('deal', true)}
+            onLinkEmail={() => actions.setPopupOpen('link', true)}
+          />
+        }
       />
 
-      <ComposePopup open={state.popups.compose} onClose={() => actions.setPopupOpen('compose', false)} onSave={() => actions.setPopupOpen('compose', false)} />
-      <DealPopup open={state.popups.deal} onClose={() => actions.setPopupOpen('deal', false)} onSave={() => actions.setPopupOpen('deal', false)} />
-      <LinkPopup open={state.popups.link} onClose={() => actions.setPopupOpen('link', false)} onSave={() => actions.setPopupOpen('link', false)} />
+      <ComposePopup
+        open={state.popups.compose}
+        onClose={() => actions.setPopupOpen('compose', false)}
+        onSave={(payload) => {
+          actions.saveCompose(payload);
+          actions.showToast(payload.body?.trim() ? 'Email sent' : 'Message body is required');
+        }}
+      />
+      <DealPopup
+        open={state.popups.deal}
+        stages={state.pipelineStages}
+        onClose={() => actions.setPopupOpen('deal', false)}
+        onSave={(payload) => {
+          actions.saveDeal(payload);
+          actions.showToast(payload.title?.trim() && payload.contact?.trim() ? 'Deal created' : 'Deal name and contact are required');
+        }}
+      />
+      <LinkPopup
+        open={state.popups.link}
+        emails={state.emails}
+        deals={state.deals}
+        defaultEmailId={state.selectedEmailId}
+        defaultDealId={state.selectedDealId}
+        onClose={() => actions.setPopupOpen('link', false)}
+        onSave={(payload) => {
+          actions.saveLink(payload);
+          actions.showToast(payload.emailId && payload.dealId ? 'Email linked to deal' : 'Pick an email and a deal to link');
+        }}
+      />
 
       <Toast visible={state.toast.visible} message={state.toast.message} type="info" displayTime={1800} onHiding={actions.hideToast} />
       <LoadPanel visible={state.showLoading} showPane shading shadingColor="rgba(0,0,0,0.15)" message="Loading..." />
