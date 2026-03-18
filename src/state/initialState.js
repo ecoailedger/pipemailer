@@ -29,6 +29,7 @@ export const initialState = {
   emails: initialEmails,
   deals: initialDeals,
   pipelineStages,
+  replyDrafts: {},
   popups: {
     compose: false,
     deal: false,
