@@ -1,15 +1,10 @@
 import List from 'devextreme-react/list';
 import PieChart, { Legend, Series } from 'devextreme-react/pie-chart';
 
-const folders = [
-  { id: 'inbox', text: 'Inbox' },
-  { id: 'sent', text: 'Sent' },
-  { id: 'drafts', text: 'Drafts' }
-];
-
 /**
  * @param {{
  *  selectedFolder: string,
+ *  folderCounts: Record<string, number>,
  *  pipelineStages: string[],
  *  selectedStage: string,
  *  deals: Array<{stage:string}>,
@@ -17,7 +12,13 @@ const folders = [
  *  onStageSelect: (stage: string) => void
  * }} props
  */
-export default function SidebarNav({ selectedFolder, pipelineStages, selectedStage, deals, onFolderChange, onStageSelect }) {
+export default function SidebarNav({ selectedFolder, folderCounts, pipelineStages, selectedStage, deals, onFolderChange, onStageSelect }) {
+  const folders = [
+    { id: 'inbox', text: `Inbox (${folderCounts.inbox ?? 0})` },
+    { id: 'sent', text: `Sent (${folderCounts.sent ?? 0})` },
+    { id: 'drafts', text: `Drafts (${folderCounts.drafts ?? 0})` }
+  ];
+
   const chartData = pipelineStages.map((stage) => ({
     stage,
     count: deals.filter((deal) => deal.stage === stage).length
@@ -56,8 +57,7 @@ export default function SidebarNav({ selectedFolder, pipelineStages, selectedSta
       <h4 className="section-title">Stage Summary</h4>
       <div id="stageChart">
         <PieChart dataSource={chartData} type="doughnut" palette="Soft" size={{ height: 178 }}>
-          <Series argumentField="stage" valueField="count">
-          </Series>
+          <Series argumentField="stage" valueField="count" />
           <Legend horizontalAlignment="center" verticalAlignment="bottom" />
         </PieChart>
       </div>
