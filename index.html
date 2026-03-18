@@ -17,6 +17,7 @@
       --radius-sm:4px;--radius-md:8px;--radius-lg:12px;--shadow-lg:0 8px 24px rgba(15,23,42,.08);
       --space-1:4px;--space-2:8px;--space-3:10px;--space-4:12px;--space-5:14px;--space-6:16px;
       --text-xs:12px;--text-sm:13px;--text-md:14px;--font-semibold:600;
+      --left-pane-width:280px;--right-pane-width:500px;--right-pane-min:320px;--right-pane-max:760px;--resize-handle-width:10px;
     }
     * { box-sizing: border-box; }
     body { margin: 0; background: var(--bg-base); color: var(--text-primary); font-family: var(--font-sans); height: 100vh; overflow: hidden; }
@@ -25,9 +26,43 @@
     .logo { font-weight: 700; font-size: 20px; letter-spacing: .3px; }
     .logo span { color: var(--accent); }
     .top-actions { display: flex; gap: 12px; justify-content: flex-end; }
-    .content { flex: 1; min-height: 0; display: grid; grid-template-columns: 280px minmax(420px, 1fr) 500px; overflow: hidden; }
+    .content { flex: 1; min-height: 0; display: grid; grid-template-columns: var(--left-pane-width, 280px) minmax(320px, 1fr) var(--resize-handle-width, 10px) var(--right-pane-width, 500px); overflow: hidden; }
     .panel { border-right: 1px solid var(--border-subtle); background: var(--bg-surface); min-height: 0; overflow: auto; }
     .panel:last-child { border-right: none; border-left: 1px solid var(--border-subtle); }
+    .right-panel { display:flex; flex-direction:column; overflow:hidden; min-height:0; }
+    .right-panel #detailTabs { flex:1; min-height:0; }
+    .right-panel #detailTabs,
+    .right-panel #detailTabs .dx-tabpanel,
+    .right-panel #detailTabs .dx-multiview,
+    .right-panel #detailTabs .dx-multiview-wrapper,
+    .right-panel #detailTabs .dx-multiview-item-container,
+    .right-panel #detailTabs .dx-multiview-item {
+      min-height: 0;
+      height: 100%;
+    }
+    #rightPaneResizeHandle {
+      width: var(--resize-handle-width, 10px);
+      cursor: col-resize;
+      position: relative;
+      background: transparent;
+      border-left: 1px solid var(--border-subtle);
+      border-right: 1px solid var(--border-subtle);
+      touch-action: none;
+    }
+    #rightPaneResizeHandle::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 3px;
+      height: 64px;
+      border-radius: 999px;
+      background: var(--border);
+    }
+    .content.is-resizing { user-select: none; }
+    .content.is-resizing #rightPaneResizeHandle::after { background: var(--accent); }
+    #toggleDetailsBtn { display:none; }
     .section-title { margin: 18px 16px 8px; font: 500 12px var(--font-mono); color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; }
     #folders, #pipelineStages { margin: 0 8px; }
     .view-toggle { margin: 14px 12px 6px; display:flex; gap:8px; }
@@ -74,7 +109,7 @@
     .smart-preview { margin-top:10px; border:1px dashed var(--border); border-radius:var(--radius-md); padding:8px; font-size:12px; color:var(--text-secondary); background:var(--bg-elevated); }
     .linkified { color: var(--blue); text-decoration: underline; }
     .reply-title { font: 500 12px var(--font-mono); color: var(--text-secondary); text-transform: uppercase; letter-spacing: .8px; margin-bottom: 8px; }
-    #detailTabs { height: calc(100% - 58px); }
+    #detailTabs { height: calc(100% - 58px); min-height:0; }
     .dx-list, .dx-popup-content, .dx-scrollable-content { background: var(--bg-surface)!important; }
     .dx-texteditor { background: var(--bg-elevated)!important; border-color: var(--border)!important; }
     .dx-button-mode-contained.dx-button-success { background-color: var(--accent)!important; color: var(--bg-base)!important; }
@@ -105,12 +140,12 @@
     .thread-scroll { max-height: 240px; }
 
     @media (max-width: 1440px) {
-      .content { grid-template-columns: 260px minmax(380px, 1fr) 430px; }
+      :root { --left-pane-width: 260px; --right-pane-width: 430px; }
     }
 
     @media (max-width: 1200px) {
       .topbar { grid-template-columns: 180px 1fr 160px; gap: 12px; }
-      .content { grid-template-columns: 240px minmax(340px, 1fr) 340px; }
+      :root { --left-pane-width: 240px; --right-pane-width: 340px; }
     }
 
     @media (max-width: 992px) {
@@ -129,6 +164,11 @@
       .content > .panel:first-child .dx-button-content { padding-left: 6px; padding-right: 6px; }
       .content > .panel:first-child .dx-button-text { display: none; }
       .right-header { position: sticky; top: 0; z-index: 3; background: var(--bg-surface); }
+      #rightPaneResizeHandle { display:none; }
+      .content.details-expanded {
+        grid-template-columns: 88px minmax(0, 1fr) minmax(360px, 44vw);
+      }
+      #toggleDetailsBtn { display:block; }
     }
 
     @media (max-width: 768px) {
@@ -140,13 +180,15 @@
         grid-template-rows: minmax(380px, 1fr) auto;
         overflow: visible;
       }
-      .content > .panel:nth-child(3) {
+      .content > .right-panel {
         grid-column: 1 / -1;
         border-left: none;
         border-top: 1px solid var(--border-subtle);
         max-height: none;
       }
-      #detailTabs { height: auto; min-height: 420px; }
+      .content.details-expanded { grid-template-columns: 88px minmax(0, 1fr); }
+      #detailTabs { height: auto; min-height: 320px; }
+      .content.details-expanded #detailTabs { min-height: 620px; }
     }
 
     @media (max-width: 560px) {
@@ -203,10 +245,12 @@
       <div id="emailListContainer"><div id="emailList"></div></div>
       <div id="kanbanView"></div>
     </main>
-    <section class="panel">
+    <div id="rightPaneResizeHandle" aria-hidden="true"></div>
+    <section class="panel right-panel">
       <div class="right-header">
         <strong id="detailTitle">No item selected</strong>
         <div class="d-flex gap-2 items-center">
+          <div id="toggleDetailsBtn"></div>
           <div id="linkBtn"></div>
           <div id="quickActionsMenu"></div>
         </div>
@@ -296,6 +340,107 @@ window.AppState = {
   },
   addDealNote:function(dealId,note){ var d=this.deals.find(function(x){return x.id===dealId}); if(d){d.notes.unshift(note);} }
 };
+var rightPaneResizeStorageKey = 'pipemailer.rightPaneWidth.v1';
+var rightPaneResizeConfig = { min:320, max:760 };
+var rightPaneMediaQuery = window.matchMedia('(max-width: 992px)');
+var rightPaneUiState = {
+  isNarrow:rightPaneMediaQuery.matches,
+  detailsExpanded:false,
+  dragging:false,
+  pointerId:null
+};
+function clampRightPaneWidth(width){
+  return Math.min(rightPaneResizeConfig.max, Math.max(rightPaneResizeConfig.min, Math.round(width)));
+}
+function applyRightPaneWidth(width){
+  var clamped = clampRightPaneWidth(width);
+  document.documentElement.style.setProperty('--right-pane-width', clamped + 'px');
+  return clamped;
+}
+function refreshDetailTabsLayout(){
+  var tabInstance = $('#detailTabs').dxTabPanel('instance');
+  if(tabInstance){
+    tabInstance.repaint();
+  }
+}
+function restoreRightPaneWidth(){
+  var saved = Number(localStorage.getItem(rightPaneResizeStorageKey));
+  var width = Number.isFinite(saved) ? saved : Number(getComputedStyle(document.documentElement).getPropertyValue('--right-pane-width').replace('px',''));
+  applyRightPaneWidth(width || 500);
+}
+function updateResponsiveRightPane(forceExpandedState){
+  var content = document.querySelector('.content');
+  if(!content){ return; }
+  rightPaneUiState.isNarrow = rightPaneMediaQuery.matches;
+  if(rightPaneUiState.isNarrow){
+    if(typeof forceExpandedState === 'boolean'){
+      rightPaneUiState.detailsExpanded = forceExpandedState;
+    }
+    content.classList.toggle('details-expanded', rightPaneUiState.detailsExpanded);
+  } else {
+    rightPaneUiState.detailsExpanded = false;
+    content.classList.remove('details-expanded');
+  }
+  var toggleLabel = rightPaneUiState.detailsExpanded ? 'Hide details' : 'Expand details';
+  var toggleInstance = $('#toggleDetailsBtn').dxButton('instance');
+  if(toggleInstance){
+    toggleInstance.option('text', toggleLabel);
+  }
+  refreshDetailTabsLayout();
+}
+function initRightPaneResizeHandle(){
+  restoreRightPaneWidth();
+  updateResponsiveRightPane(false);
+  var content = document.querySelector('.content');
+  var handle = document.getElementById('rightPaneResizeHandle');
+  if(!content || !handle){ return; }
+
+  function onPointerMove(ev){
+    if(!rightPaneUiState.dragging || rightPaneUiState.isNarrow){ return; }
+    var bounds = content.getBoundingClientRect();
+    var nextWidth = clampRightPaneWidth(bounds.right - ev.clientX);
+    applyRightPaneWidth(nextWidth);
+    refreshDetailTabsLayout();
+  }
+  function stopDrag(save){
+    if(!rightPaneUiState.dragging){ return; }
+    rightPaneUiState.dragging = false;
+    content.classList.remove('is-resizing');
+    if(save){
+      var current = Number(getComputedStyle(document.documentElement).getPropertyValue('--right-pane-width').replace('px',''));
+      localStorage.setItem(rightPaneResizeStorageKey, String(clampRightPaneWidth(current || 500)));
+    }
+    rightPaneUiState.pointerId = null;
+  }
+
+  handle.addEventListener('pointerdown', function(ev){
+    if(rightPaneUiState.isNarrow){ return; }
+    ev.preventDefault();
+    rightPaneUiState.dragging = true;
+    rightPaneUiState.pointerId = ev.pointerId;
+    content.classList.add('is-resizing');
+    handle.setPointerCapture(ev.pointerId);
+  });
+  handle.addEventListener('pointermove', onPointerMove);
+  handle.addEventListener('pointerup', function(ev){
+    if(rightPaneUiState.pointerId===ev.pointerId && handle.hasPointerCapture(ev.pointerId)){
+      handle.releasePointerCapture(ev.pointerId);
+    }
+    stopDrag(true);
+  });
+  handle.addEventListener('pointercancel', function(ev){
+    if(rightPaneUiState.pointerId===ev.pointerId && handle.hasPointerCapture(ev.pointerId)){
+      handle.releasePointerCapture(ev.pointerId);
+    }
+    stopDrag(false);
+  });
+  document.addEventListener('pointermove', onPointerMove);
+  window.addEventListener('blur', function(){ stopDrag(false); });
+  rightPaneMediaQuery.addEventListener('change', function(){
+    stopDrag(false);
+    updateResponsiveRightPane(false);
+  });
+}
 function getStageSummary(){
   return AppState.pipelineStages.map(function(stage){
     var deals = AppState.deals.filter(function(d){ return d.stage===stage; });
@@ -681,6 +826,14 @@ $(function(){
   $('#composeBtn').dxButton({text:'Add Email',type:'success',onClick:function(){$('#composePopup').dxPopup('instance').show();}});
   $('#themeBtn').dxButton({text:'Theme',icon:'contrast',stylingMode:'outlined',onClick:toggleTheme});
   $('#notifBtn').dxButton({icon:'bell',hint:'Notifications'});
+  $('#toggleDetailsBtn').dxButton({
+    text:'Expand details',
+    icon:'chevrondoubleright',
+    stylingMode:'outlined',
+    onClick:function(){
+      updateResponsiveRightPane(!rightPaneUiState.detailsExpanded);
+    }
+  });
   $('#sendLoadPanel').dxLoadPanel({shadingColor:'rgba(0,0,0,0.25)',position:{of:'.app-shell'},visible:false,showIndicator:true,showPane:true,message:'Sending...'});
   $('#quickActionsMenu').dxDropDownButton({
     text:'More',
@@ -926,6 +1079,7 @@ $(function(){
     }
   });
   $('#linkBtn').dxButton({text:'Link Email',stylingMode:'text',onClick:function(){ $('#linkPopup').dxPopup('instance').show(); }});
+  initRightPaneResizeHandle();
   renderEmailList();
   renderRightPanel();
   refreshInsights();
