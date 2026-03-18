@@ -131,6 +131,19 @@ export default function App() {
     [state.deals, emailsWithSla, state.pipelineStages, state.macroTemplates, state.macroUsageLog]
   );
 
+  const handleDashboardDrillDown = ({ target, folder = 'inbox', stage = null, assigneeId, queue = 'all' }) => {
+    if (target === 'pipeline') {
+      actions.setSelectedStage(stage);
+      actions.setView('pipeline');
+      return;
+    }
+
+    actions.setSelectedFolder(folder);
+    actions.setSelectedQueue(queue);
+    setSelectedAssigneeFilter(assigneeId ?? 'all');
+    actions.setView('email');
+  };
+
   return (
     <div style={themeVars[state.themeMode]}>
       <AppShell
@@ -194,6 +207,10 @@ export default function App() {
                 dashboardMetrics={dashboardMetrics}
                 emails={emailsWithSla}
                 deals={searchableDeals}
+                assignees={state.assignees}
+                currentUserId={state.currentUserId}
+                teamAssigneeIds={state.teamAssigneeIds}
+                onDrillDown={handleDashboardDrillDown}
                 macroTemplates={state.macroTemplates}
                 macroCategories={state.macroCategories}
                 onCreateMacro={actions.createMacroTemplate}

@@ -10,7 +10,10 @@ const KPI_ITEMS = [
   { key: 'activeDeals', label: 'Active Deals', format: (value) => String(value) },
   { key: 'unlinkedEmailCount', label: 'Unlinked Emails', format: (value) => String(value) },
   { key: 'atRiskEmailCount', label: 'SLA At Risk', format: (value) => String(value) },
-  { key: 'overdueEmailCount', label: 'SLA Overdue', format: (value) => String(value) }
+  { key: 'overdueEmailCount', label: 'SLA Overdue', format: (value) => String(value) },
+  { key: 'medianFirstResponseTimeMs', label: 'Median First Response', format: (value) => `${(value / (60 * 60 * 1000)).toFixed(1)}h` },
+  { key: 'medianResolutionTimeMs', label: 'Median Resolution', format: (value) => `${(value / (60 * 60 * 1000)).toFixed(1)}h` },
+  { key: 'reopenRate', label: 'Reopen Rate', format: (value) => `${(value * 100).toFixed(1)}%` }
 ];
 
 const EMPTY_MACRO_FORM = {
@@ -32,6 +35,13 @@ function getDealSortValue(deal) {
   return -days;
 }
 
+function getMedian(values = []) {
+  if (!values.length) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const midpoint = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[midpoint] : (sorted[midpoint - 1] + sorted[midpoint]) / 2;
+}
+
 /**
  * @param {{
  *  dashboardMetrics: {
@@ -44,6 +54,11 @@ function getDealSortValue(deal) {
  *    unlinkedEmailCount: number,
  *    atRiskEmailCount: number,
  *    overdueEmailCount: number,
+ *    medianFirstResponseTimeMs: number,
+ *    medianResolutionTimeMs: number,
+ *    reopenRate: number,
+ *    stageAging: Array<{stage:string,dealCount:number,avgDays:number,medianDays:number}>,
+ *    reasonCodeDistribution: Array<{reasonCode:string,count:number}>,
  *    macroAnalytics?: {
  *      totalMacros: number,
  *      activeMacros: number,
@@ -57,6 +72,10 @@ function getDealSortValue(deal) {
  *  },
  *  emails: Array<{ id: number, subject: string, from: string, date: string, dealId?: number | null }>,
  *  deals: Array<{ id: number, title: string, stage: string, days?: number, createdAt?: string, updatedAt?: string }>,
+ *  assignees: Array<{id:string,name:string}>,
+ *  currentUserId: string,
+ *  teamAssigneeIds: string[],
+ *  onDrillDown?: (payload: { target: 'email' | 'pipeline', folder?: string, stage?: string, assigneeId?: string, queue?: string }) => void,
  *  macroTemplates: Array<{id:string,title:string,category:string,body:string,isArchived?:boolean,updatedAt?:string}>,
  *  macroCategories: Array<{id:string,label:string}>,
  *  onCreateMacro: (payload: {title:string,category:string,body:string}) => void,
@@ -68,17 +87,52 @@ export default function DashboardView({
   dashboardMetrics,
   emails,
   deals,
+  assignees,
+  currentUserId,
+  teamAssigneeIds,
+  onDrillDown,
   macroTemplates,
   macroCategories,
   onCreateMacro,
   onUpdateMacro,
   onArchiveMacro
 }) {
-  const recentEmails = [...emails].sort((a, b) => getEmailSortValue(b) - getEmailSortValue(a)).slice(0, 6);
-  const recentDealUpdates = [...deals].sort((a, b) => getDealSortValue(b) - getDealSortValue(a)).slice(0, 6);
+  const [selectedAssigneeId, setSelectedAssigneeId] = useState('all');
+  const [selectedTeamFilter, setSelectedTeamFilter] = useState('all');
+  const [timeWindowDays, setTimeWindowDays] = useState(30);
   const [macroForm, setMacroForm] = useState(EMPTY_MACRO_FORM);
 
   const canSubmitMacro = Boolean(macroForm.title.trim() && macroForm.category && macroForm.body.trim());
+  const timeWindowCutoff = useMemo(() => Date.now() - Number(timeWindowDays) * 24 * 60 * 60 * 1000, [timeWindowDays]);
+
+  const assigneeOptions = useMemo(() => {
+    const byId = new Map(assignees.map((assignee) => [assignee.id, assignee]));
+    return Array.from(byId.values());
+  }, [assignees]);
+
+  const filteredEmails = useMemo(
+    () =>
+      emails.filter((email) => {
+        if (selectedAssigneeId !== 'all' && email.assigneeId !== selectedAssigneeId) return false;
+        if (selectedTeamFilter === 'team' && !teamAssigneeIds.includes(email.assigneeId)) return false;
+        if (selectedTeamFilter === 'mine' && email.assigneeId !== currentUserId) return false;
+        const emailTime = normalizeDateValue(email.date)?.getTime() ?? 0;
+        return emailTime >= timeWindowCutoff;
+      }),
+    [currentUserId, emails, selectedAssigneeId, selectedTeamFilter, teamAssigneeIds, timeWindowCutoff]
+  );
+
+  const filteredDeals = useMemo(
+    () =>
+      deals.filter((deal) => {
+        const updatedAt = normalizeDateValue(deal.updatedAt)?.getTime() ?? normalizeDateValue(deal.createdAt)?.getTime() ?? Date.now();
+        return updatedAt >= timeWindowCutoff;
+      }),
+    [deals, timeWindowCutoff]
+  );
+
+  const recentEmails = [...filteredEmails].sort((a, b) => getEmailSortValue(b) - getEmailSortValue(a)).slice(0, 6);
+  const recentDealUpdates = [...filteredDeals].sort((a, b) => getDealSortValue(b) - getDealSortValue(a)).slice(0, 6);
 
   const categoryLookup = useMemo(
     () => Object.fromEntries(macroCategories.map((category) => [category.id, category.label])),
@@ -114,16 +168,149 @@ export default function DashboardView({
     templateUsage: [],
     categoryUsage: []
   };
+  const kpiValues = useMemo(() => {
+    const firstResponseHours = filteredEmails
+      .map((email) => {
+        const emailTime = normalizeDateValue(email.date)?.getTime() ?? null;
+        if (!emailTime) return null;
+        const firstAgentAt = (email.thread ?? [])
+          .filter((message) => message.from === 'You')
+          .map((message) => normalizeDateValue(message.at)?.getTime() ?? 0)
+          .filter(Boolean)
+          .sort((a, b) => a - b)[0];
+        return firstAgentAt && firstAgentAt > emailTime ? firstAgentAt - emailTime : null;
+      })
+      .filter((value) => Number.isFinite(value));
+    const resolutionSamples = filteredEmails
+      .map((email) => {
+        const emailTime = normalizeDateValue(email.date)?.getTime() ?? null;
+        if (!emailTime) return null;
+        const lastActivity = (email.thread ?? [])
+          .map((message) => normalizeDateValue(message.at)?.getTime() ?? 0)
+          .filter(Boolean)
+          .sort((a, b) => b - a)[0];
+        return lastActivity && lastActivity > emailTime ? lastActivity - emailTime : null;
+      })
+      .filter((value) => Number.isFinite(value));
+    const reopenedCount = filteredEmails.filter((email) => {
+      const firstReplyIndex = (email.thread ?? []).findIndex((message) => message.from === 'You');
+      if (firstReplyIndex === -1) return false;
+      return (email.thread ?? []).slice(firstReplyIndex + 1).some((message) => message.from !== 'You');
+    }).length;
+
+    const filteredMetrics = {
+      totalPipelineValue: filteredDeals.filter((deal) => deal.stage !== 'Lost').reduce((sum, deal) => sum + (Number(deal.value) || 0), 0),
+      weightedPipelineValue: filteredDeals
+        .filter((deal) => deal.stage !== 'Lost')
+        .reduce((sum, deal) => sum + Math.round(((Number(deal.value) || 0) * (Number(deal.probability) || 0)) / 100), 0),
+      winRate: dashboardMetrics.winRate,
+      avgDealValue: filteredDeals.length
+        ? filteredDeals.reduce((sum, deal) => sum + (Number(deal.value) || 0), 0) / filteredDeals.length
+        : 0,
+      activeDeals: filteredDeals.filter((deal) => !['Won', 'Lost'].includes(deal.stage)).length,
+      unlinkedEmailCount: filteredEmails.filter((email) => email.dealId == null).length,
+      atRiskEmailCount: filteredEmails.filter((email) => email.computedSlaStatus === 'atRisk').length,
+      overdueEmailCount: filteredEmails.filter((email) => ['overdue', 'breached'].includes(email.computedSlaStatus)).length,
+      medianFirstResponseTimeMs: getMedian(firstResponseHours),
+      medianResolutionTimeMs: getMedian(resolutionSamples),
+      reopenRate: filteredEmails.length ? reopenedCount / filteredEmails.length : 0
+    };
+    return { filteredMetrics };
+  }, [dashboardMetrics.winRate, filteredDeals, filteredEmails]);
+
+  const filteredStageValueBreakdown = useMemo(() => {
+    const stageMap = new Map();
+    for (const deal of filteredDeals) {
+      const existing = stageMap.get(deal.stage) ?? { stage: deal.stage, totalValue: 0, weightedValue: 0, dealCount: 0 };
+      const value = Number(deal.value) || 0;
+      const probability = Number(deal.probability) || 0;
+      existing.totalValue += value;
+      existing.weightedValue += Math.round((value * probability) / 100);
+      existing.dealCount += 1;
+      stageMap.set(deal.stage, existing);
+    }
+    return Array.from(stageMap.values());
+  }, [filteredDeals]);
+
+  const filteredStageAging = useMemo(
+    () =>
+      filteredStageValueBreakdown.map((item) => {
+        const stageDeals = filteredDeals.filter((deal) => deal.stage === item.stage);
+        const days = stageDeals.map((deal) => Number(deal.days)).filter((value) => Number.isFinite(value) && value >= 0);
+        return {
+          stage: item.stage,
+          dealCount: stageDeals.length,
+          avgDays: days.length ? days.reduce((sum, value) => sum + value, 0) / days.length : 0,
+          medianDays: getMedian(days)
+        };
+      }),
+    [filteredDeals, filteredStageValueBreakdown]
+  );
+
+  const filteredReasonCodeDistribution = useMemo(() => {
+    const counts = new Map();
+    for (const item of filteredEmails) {
+      const reason =
+        item.reasonCode ??
+        ((item.slaEscalations ?? []).length
+          ? 'sla_escalated'
+          : item.approvalStatus === 'rejected'
+            ? 'approval_rejected'
+            : item.approvalStatus === 'required'
+              ? 'approval_required'
+              : !item.assigneeId
+                ? 'unassigned'
+                : 'general_inquiry');
+      counts.set(reason, (counts.get(reason) ?? 0) + 1);
+    }
+    return Array.from(counts.entries()).map(([reasonCode, count]) => ({ reasonCode, count }));
+  }, [filteredEmails]);
 
   return (
     <div className="dashboard-grid">
       <section className="dashboard-section">
         <h3>Pipeline Snapshot</h3>
+        <div className="compose-actions">
+          <select className="macro-input" value={selectedAssigneeId} onChange={(event) => setSelectedAssigneeId(event.target.value)}>
+            <option value="all">All assignees</option>
+            {assigneeOptions.map((assignee) => (
+              <option value={assignee.id} key={assignee.id}>{assignee.name}</option>
+            ))}
+          </select>
+          <select className="macro-input" value={selectedTeamFilter} onChange={(event) => setSelectedTeamFilter(event.target.value)}>
+            <option value="all">All teams</option>
+            <option value="team">My team</option>
+            <option value="mine">Only me</option>
+          </select>
+          <select className="macro-input" value={timeWindowDays} onChange={(event) => setTimeWindowDays(Number(event.target.value))}>
+            <option value={7}>Last 7 days</option>
+            <option value={30}>Last 30 days</option>
+            <option value={90}>Last 90 days</option>
+          </select>
+        </div>
         <div className="dashboard-kpis">
           {KPI_ITEMS.map((item) => (
             <article className="kpi-card" key={item.key}>
-              <p className="kpi-label">{item.label}</p>
-              <p className="kpi-value">{item.format(dashboardMetrics[item.key])}</p>
+              <button
+                type="button"
+                className="dx-button dx-button-mode-text dx-button-normal"
+                onClick={() => {
+                  if (!onDrillDown) return;
+                  if (item.key.includes('Deal') || item.key.includes('Pipeline') || item.key === 'winRate') {
+                    onDrillDown({ target: 'pipeline' });
+                    return;
+                  }
+                  onDrillDown({
+                    target: 'email',
+                    folder: 'inbox',
+                    assigneeId: selectedAssigneeId !== 'all' ? selectedAssigneeId : undefined,
+                    queue: selectedTeamFilter === 'mine' ? 'mine' : selectedTeamFilter === 'team' ? 'team' : 'all'
+                  });
+                }}
+              >
+                <p className="kpi-label">{item.label}</p>
+                <p className="kpi-value">{item.format(kpiValues.filteredMetrics[item.key])}</p>
+              </button>
             </article>
           ))}
         </div>
@@ -131,7 +318,7 @@ export default function DashboardView({
 
       <section className="dashboard-section">
         <h3>Stage Value</h3>
-        <Chart id="stageValueChart" dataSource={dashboardMetrics.stageValueBreakdown} palette="Soft Blue" height={320}>
+        <Chart id="stageValueChart" dataSource={filteredStageValueBreakdown} palette="Soft Blue" height={320}>
           <CommonSeriesSettings argumentField="stage" type="stackedBar" />
           <ArgumentAxis>
             <Label overlappingBehavior="stagger" />
@@ -149,6 +336,32 @@ export default function DashboardView({
               text: `${info.seriesName}: ${formatCurrency(info.value)}`
             })}
           />
+        </Chart>
+      </section>
+
+      <section className="dashboard-section">
+        <h3>Stage Aging</h3>
+        <Chart id="stageAgingChart" dataSource={filteredStageAging} palette="Soft Pastel" height={320}>
+          <CommonSeriesSettings argumentField="stage" type="bar" />
+          <ArgumentAxis>
+            <Label overlappingBehavior="stagger" />
+          </ArgumentAxis>
+          <Series valueField="avgDays" name="Avg Days" />
+          <Series valueField="medianDays" name="Median Days" />
+          <Legend verticalAlignment="bottom" horizontalAlignment="center" />
+          <Tooltip enabled shared />
+        </Chart>
+      </section>
+
+      <section className="dashboard-section">
+        <h3>Reason Code Distribution</h3>
+        <Chart id="reasonCodeChart" dataSource={filteredReasonCodeDistribution} palette="Material" height={280}>
+          <CommonSeriesSettings argumentField="reasonCode" type="bar" />
+          <ArgumentAxis>
+            <Label overlappingBehavior="rotate" rotationAngle={-30} />
+          </ArgumentAxis>
+          <Series valueField="count" name="Cases" />
+          <Tooltip enabled />
         </Chart>
       </section>
 
