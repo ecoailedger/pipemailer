@@ -1,0 +1,79 @@
+.app-shell { height: 100vh; display: flex; flex-direction: column; }
+.topbar { height: 62px; border-bottom: 1px solid var(--border); padding: 10px 16px; display: grid; grid-template-columns: 210px 1fr 190px; gap: 16px; align-items: center; background: var(--bg-surface); }
+.logo { font-weight: 700; font-size: 20px; letter-spacing: .3px; }
+.logo span { color: var(--accent); }
+.top-actions { display: flex; gap: 12px; justify-content: flex-end; }
+.content { flex: 1; min-height: 0; display: grid; grid-template-columns: var(--left-pane-width, 280px) minmax(320px, 1fr) var(--resize-handle-width, 10px) var(--right-pane-width, 500px); overflow: hidden; }
+.panel { border-right: 1px solid var(--border-subtle); background: var(--bg-surface); min-height: 0; overflow: auto; }
+.panel:last-child { border-right: none; border-left: 1px solid var(--border-subtle); }
+.right-panel { display:flex; flex-direction:column; overflow:hidden; min-height:0; }
+#detailTabs { height: calc(100% - 58px); min-height:0; }
+.right-panel #detailTabs,
+.right-panel #detailTabs .dx-tabpanel,
+.right-panel #detailTabs .dx-multiview,
+.right-panel #detailTabs .dx-multiview-wrapper,
+.right-panel #detailTabs .dx-multiview-item-container,
+.right-panel #detailTabs .dx-multiview-item { min-height: 0; height: 100%; }
+#rightPaneResizeHandle { width: var(--resize-handle-width, 10px); cursor: col-resize; position: relative; background: transparent; border-left: 1px solid var(--border-subtle); border-right: 1px solid var(--border-subtle); touch-action: none; }
+#rightPaneResizeHandle::after { content: ''; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 3px; height: 64px; border-radius: 999px; background: var(--border); }
+.content.is-resizing { user-select: none; }
+.content.is-resizing #rightPaneResizeHandle::after { background: var(--accent); }
+#toggleDetailsBtn { display:none; }
+.section-title { margin: 18px 16px 8px; font: 500 12px var(--font-mono); color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; }
+#folders, #pipelineStages { margin: 0 8px; }
+.view-toggle { margin: 14px 12px 6px; display:flex; gap:8px; }
+.action-grid { margin: 8px 12px 0; display: grid; gap: 8px; }
+.insights-card { margin: 12px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 10px; }
+.insight-row { display:flex; justify-content: space-between; margin-top: 6px; font-size: 13px; }
+#stageChart { margin: 8px 12px 12px; height: 180px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-elevated); }
+#emailListContainer, #kanbanView { height: calc(100% - 12px); }
+#emailList { height: 100%; }
+.right-header { padding: 14px; border-bottom: 1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
+.empty-state { padding: 36px 26px; text-align:center; color: var(--text-secondary); }
+.card-body { padding: var(--space-4); }
+.thread-wrap { padding: 14px; }
+.thread-scroll { max-height: 240px; }
+.compose-actions { display:flex; gap:8px; margin-top:12px; position: sticky; bottom: 0; background: linear-gradient(to top, var(--bg-surface) 75%, transparent); padding-top: 8px; }
+.timeline-filter-row { display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap; position: sticky; top: 0; z-index: 2; background: var(--bg-surface); padding-bottom: 6px; }
+#emailListContainer, #detailTabs { min-height: 0; }
+
+@media (max-width: 1440px) { :root { --left-pane-width: 260px; --right-pane-width: 430px; } }
+@media (max-width: 1200px) {
+  .topbar { grid-template-columns: 180px 1fr 160px; gap: 12px; }
+  :root { --left-pane-width: 240px; --right-pane-width: 340px; }
+}
+@media (max-width: 992px) {
+  .topbar { grid-template-columns: 1fr auto; grid-template-areas: "logo actions" "search search"; height: auto; }
+  .logo { grid-area: logo; }
+  #searchBox { grid-area: search; min-width: 0; }
+  .top-actions { grid-area: actions; gap: 8px; }
+  .content { grid-template-columns: 88px minmax(0, 1fr) 320px; }
+  .content > .panel:first-child { padding-top: 6px; }
+  .content > .panel:first-child .section-title,.content > .panel:first-child .insights-card,.content > .panel:first-child #stageChart { display: none; }
+  .content > .panel:first-child .view-toggle,.content > .panel:first-child .action-grid { margin: 8px 6px 0; }
+  .content > .panel:first-child .dx-button { width: 100%; min-width: 0; }
+  .content > .panel:first-child .dx-button-content { padding-left: 6px; padding-right: 6px; }
+  .content > .panel:first-child .dx-button-text { display: none; }
+  .right-header { position: sticky; top: 0; z-index: 3; background: var(--bg-surface); }
+  #rightPaneResizeHandle { display:none; }
+  .content.details-expanded { grid-template-columns: 88px minmax(0, 1fr) minmax(360px, 44vw); }
+  #toggleDetailsBtn { display:block; }
+}
+@media (max-width: 768px) {
+  body { height: auto; min-height: 100vh; overflow: auto; }
+  .app-shell { min-height: 100vh; height: auto; }
+  .topbar { position: sticky; top: 0; z-index: 10; }
+  .content { grid-template-columns: 88px minmax(0, 1fr); grid-template-rows: minmax(380px, 1fr) auto; overflow: visible; }
+  .content > .right-panel { grid-column: 1 / -1; border-left: none; border-top: 1px solid var(--border-subtle); max-height: none; }
+  .content.details-expanded { grid-template-columns: 88px minmax(0, 1fr); }
+  #detailTabs { height: auto; min-height: 320px; }
+  .content.details-expanded #detailTabs { min-height: 620px; }
+}
+@media (max-width: 560px) {
+  .content { grid-template-columns: 1fr; grid-template-rows: auto auto auto; }
+  .content > .panel { border-right: none; border-bottom: 1px solid var(--border-subtle); }
+  .content > .panel:first-child { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; padding: 8px; }
+  .content > .panel:first-child #folders,.content > .panel:first-child #pipelineStages { grid-column: 1 / -1; }
+  .content > .panel:first-child .view-toggle,.content > .panel:first-child .action-grid { display: contents; }
+  .content > .panel:first-child .dx-button-text { display: inline; }
+}
