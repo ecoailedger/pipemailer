@@ -349,6 +349,16 @@ var rightPaneUiState = {
   dragging:false,
   pointerId:null
 };
+function bindMediaQueryChange(mql, handler){
+  if(!mql || typeof handler !== 'function'){ return; }
+  if(typeof mql.addEventListener === 'function'){
+    mql.addEventListener('change', handler);
+    return;
+  }
+  if(typeof mql.addListener === 'function'){
+    mql.addListener(handler);
+  }
+}
 function clampRightPaneWidth(width){
   return Math.min(rightPaneResizeConfig.max, Math.max(rightPaneResizeConfig.min, Math.round(width)));
 }
@@ -436,7 +446,7 @@ function initRightPaneResizeHandle(){
   });
   document.addEventListener('pointermove', onPointerMove);
   window.addEventListener('blur', function(){ stopDrag(false); });
-  rightPaneMediaQuery.addEventListener('change', function(){
+  bindMediaQueryChange(rightPaneMediaQuery, function(){
     stopDrag(false);
     updateResponsiveRightPane(false);
   });
