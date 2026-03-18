@@ -23,6 +23,7 @@ export const initialState = {
   selectedEmailId: initialEmails[0]?.id ?? null,
   selectedDealId: initialEmails[0]?.dealId ?? null,
   selectedFolder: 'inbox',
+  selectedQueue: 'all',
   selectedStage: null,
   searchQuery: '',
   themeMode: 'light',
@@ -32,6 +33,14 @@ export const initialState = {
     message: ''
   },
   emails: initialEmails,
+  assignees: [
+    { id: 'u-alex', name: 'Alex Morgan' },
+    { id: 'u-jordan', name: 'Jordan Lee' },
+    { id: 'u-riley', name: 'Riley Chen' },
+    { id: 'u-taylor', name: 'Taylor Brooks' }
+  ],
+  currentUserId: 'u-alex',
+  teamAssigneeIds: ['u-alex', 'u-jordan', 'u-riley', 'u-taylor'],
   deals: initialDeals,
   pipelineStages,
   replyDrafts: {},

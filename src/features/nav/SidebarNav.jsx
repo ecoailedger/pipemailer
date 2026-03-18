@@ -4,13 +4,26 @@ import List from 'devextreme-react/list';
  * @param {{
  *  view: 'email' | 'pipeline' | 'dashboard',
  *  selectedFolder: string,
+ *  selectedQueue: string,
  *  onSelectFolder: (folder: string) => void,
+ *  onSelectQueue: (queue: string) => void,
  *  onOpenPipeline: (stage?: string | null) => void,
  *  folderCounts: Record<string, number>,
+ *  queueCounts: Record<string, number>,
  *  pipelineStages: string[]
  * }} props
  */
-export default function SidebarNav({ view, selectedFolder, onSelectFolder, onOpenPipeline, folderCounts, pipelineStages }) {
+export default function SidebarNav({
+  view,
+  selectedFolder,
+  selectedQueue,
+  onSelectFolder,
+  onSelectQueue,
+  onOpenPipeline,
+  folderCounts,
+  queueCounts,
+  pipelineStages
+}) {
   const folders = [
     { id: 'inbox', label: 'Inbox' },
     { id: 'sent', label: 'Sent' },
@@ -19,6 +32,12 @@ export default function SidebarNav({ view, selectedFolder, onSelectFolder, onOpe
   ];
 
   const stageItems = [{ id: null, label: 'All stages' }, ...pipelineStages.map((stage) => ({ id: stage, label: stage }))];
+  const queueItems = [
+    { id: 'all', label: 'All' },
+    { id: 'unassigned', label: 'Unassigned' },
+    { id: 'mine', label: 'Mine' },
+    { id: 'team', label: 'Team' }
+  ];
 
   return (
     <div>
@@ -37,6 +56,24 @@ export default function SidebarNav({ view, selectedFolder, onSelectFolder, onOpe
         itemRender={(item) => (
           <span>
             {item.label} <span className="count-muted">({folderCounts[item.id] ?? 0})</span>
+          </span>
+        )}
+      />
+
+      <h4 className="section-title">Queues</h4>
+      <List
+        id="queues"
+        dataSource={queueItems}
+        keyExpr="id"
+        selectionMode="single"
+        selectedItemKeys={[selectedQueue]}
+        onSelectionChanged={(event) => {
+          const queue = event.addedItems?.[0]?.id;
+          if (queue) onSelectQueue(queue);
+        }}
+        itemRender={(item) => (
+          <span>
+            {item.label} <span className="count-muted">({queueCounts[item.id] ?? 0})</span>
           </span>
         )}
       />

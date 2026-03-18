@@ -14,11 +14,27 @@ const EMPTY_DRAFT = { to: '', cc: '', subject: '', body: '' };
  *  onSetDraft: (payload: {emailId:number,to:string,cc:string,subject:string,body:string,dealId:number|null}) => void,
  *  onClearDraft: (payload: {emailId:number}) => void,
  *  onReply: (payload: {emailId:number,to:string,cc:string,subject:string,body:string,dealId:number|null}) => void,
- *  onLinkDeal: (payload: { emailId: number, dealId: number }) => void
+ *  onLinkDeal: (payload: { emailId: number, dealId: number }) => void,
+ *  assignees: Array<{id:string,name:string}>,
+ *  resolveAssigneeName: (assigneeId?:string|null) => string,
+ *  onAssign: (payload: {emailId:number,assigneeId:string}) => void
  * }} props
  */
-export default function RightPanel({ selectedEmail, selectedDeal, deals, draft, onSetDraft, onClearDraft, onReply, onLinkDeal }) {
+export default function RightPanel({
+  selectedEmail,
+  selectedDeal,
+  deals,
+  draft,
+  onSetDraft,
+  onClearDraft,
+  onReply,
+  onLinkDeal,
+  assignees,
+  resolveAssigneeName,
+  onAssign
+}) {
   const [isComposerOpen, setIsComposerOpen] = useState(false);
+  const [selectedAssigneeId, setSelectedAssigneeId] = useState('');
 
   const composerDraft = useMemo(() => draft ?? EMPTY_DRAFT, [draft]);
 
@@ -86,6 +102,54 @@ export default function RightPanel({ selectedEmail, selectedDeal, deals, draft, 
           onSendReply={sendReply}
           onCancelReply={cancelReply}
         />
+      )
+    },
+    {
+      title: 'Assignment',
+      content: (
+        <div className="thread-wrap">
+          {selectedEmail ? (
+            <article className="thread-message">
+              <div className="thread-meta-row"><span>Current owner</span><span>{resolveAssigneeName(selectedEmail.assigneeId)}</span></div>
+              <div className="thread-meta-row"><span>Assigned at</span><span>{selectedEmail.assignedAt || '—'}</span></div>
+              <div className="assign-controls">
+                <select value={selectedAssigneeId} onChange={(event) => setSelectedAssigneeId(event.target.value)}>
+                  <option value="">Choose assignee…</option>
+                  {assignees.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className="dx-button dx-button-mode-contained dx-button-normal"
+                  onClick={() => {
+                    if (!selectedAssigneeId) return;
+                    onAssign({ emailId: selectedEmail.id, assigneeId: selectedAssigneeId });
+                    setSelectedAssigneeId('');
+                  }}
+                >
+                  {selectedEmail.assigneeId ? 'Reassign' : 'Assign'}
+                </button>
+              </div>
+              {!!selectedEmail.assignmentHistory?.length && (
+                <div className="assignment-history">
+                  {selectedEmail.assignmentHistory.map((entry, index) => (
+                    <div key={`${entry.assigneeId}-${entry.assignedAt}-${index}`} className="timeline-item">
+                      <div className="thread-meta-row">
+                        <span>{resolveAssigneeName(entry.assigneeId)}</span>
+                        <span>{entry.assignedAt}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </article>
+          ) : (
+            <div className="empty-state">No thread selected.</div>
+          )}
+        </div>
       )
     },
     {

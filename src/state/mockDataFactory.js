@@ -26,6 +26,12 @@ const EMAIL_SUBJECTS = [
   'Reference customer request',
   'Renewal alignment for leadership'
 ];
+const ASSIGNEES = [
+  { id: 'u-alex', name: 'Alex Morgan' },
+  { id: 'u-jordan', name: 'Jordan Lee' },
+  { id: 'u-riley', name: 'Riley Chen' },
+  { id: 'u-taylor', name: 'Taylor Brooks' }
+];
 
 function toSeedNumber(seed) {
   if (typeof seed === 'number') return seed >>> 0;
@@ -83,6 +89,20 @@ function createThread(email, rng, sentAt) {
     });
   }
   return thread;
+}
+
+function maybeAssign(rng, sentAt) {
+  if (rng() < 0.35) {
+    return { assigneeId: null, assignedAt: null, assignmentHistory: [] };
+  }
+
+  const assignee = pick(rng, ASSIGNEES);
+  const assignedAt = new Date(sentAt.getTime() + Math.floor(rng() * 6) * 60 * 60 * 1000).toISOString();
+  return {
+    assigneeId: assignee.id,
+    assignedAt,
+    assignmentHistory: [{ assigneeId: assignee.id, assignedAt }]
+  };
 }
 
 export function buildMockDeals(count, seed) {
@@ -149,7 +169,8 @@ export function buildMockEmails(count, seed) {
       isStarred: index % 9 === 0,
       dealId: linkedDealId,
       body: `This is deterministic mock email #${id} for ${subject.toLowerCase()}.`,
-      thread: createThread({ from: isSentOrDraft ? person : 'You', subject }, rng, sentAt)
+      thread: createThread({ from: isSentOrDraft ? person : 'You', subject }, rng, sentAt),
+      ...maybeAssign(rng, sentAt)
     };
 
     if (!isSentOrDraft) {
