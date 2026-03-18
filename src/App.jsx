@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import AppShell from './layout/AppShell';
 import TopBar from './features/topbar/TopBar.jsx';
 import SidebarNav from './features/nav/SidebarNav.jsx';
@@ -31,7 +31,12 @@ const themeVars = {
 
 export default function App() {
   const { state, actions } = useAppStore();
+  const [selectedAssigneeFilter, setSelectedAssigneeFilter] = useState('all');
   const normalizedSearchQuery = state.searchQuery.trim().toLowerCase();
+  const assigneeLookup = useMemo(
+    () => Object.fromEntries(state.assignees.map((item) => [item.id, item.name])),
+    [state.assignees]
+  );
 
   const folderCounts = useMemo(
     () =>
@@ -48,12 +53,34 @@ export default function App() {
   const filteredEmails = useMemo(() => {
     return state.emails.filter((email) => {
       if (email.folder !== state.selectedFolder) return false;
+      if (state.selectedQueue === 'unassigned' && email.assigneeId) return false;
+      if (state.selectedQueue === 'mine' && email.assigneeId !== state.currentUserId) return false;
+      if (state.selectedQueue === 'team' && !state.teamAssigneeIds.includes(email.assigneeId)) return false;
+      if (selectedAssigneeFilter !== 'all' && email.assigneeId !== selectedAssigneeFilter) return false;
       if (!normalizedSearchQuery) return true;
       return [email.from, email.subject, email.snippet].some((field) =>
         field.toLowerCase().includes(normalizedSearchQuery)
       );
     });
-  }, [normalizedSearchQuery, state.emails, state.selectedFolder]);
+  }, [
+    normalizedSearchQuery,
+    selectedAssigneeFilter,
+    state.currentUserId,
+    state.emails,
+    state.selectedFolder,
+    state.selectedQueue,
+    state.teamAssigneeIds
+  ]);
+
+  const queueCounts = useMemo(() => {
+    const inboxEmails = state.emails.filter((email) => email.folder === state.selectedFolder);
+    return {
+      all: inboxEmails.length,
+      unassigned: inboxEmails.filter((email) => !email.assigneeId).length,
+      mine: inboxEmails.filter((email) => email.assigneeId === state.currentUserId).length,
+      team: inboxEmails.filter((email) => state.teamAssigneeIds.includes(email.assigneeId)).length
+    };
+  }, [state.currentUserId, state.emails, state.selectedFolder, state.teamAssigneeIds]);
 
   const searchableDeals = useMemo(() => {
     if (!normalizedSearchQuery || state.view === 'email') return state.deals;
@@ -104,10 +131,16 @@ export default function App() {
           <SidebarNav
             view={state.view}
             selectedFolder={state.selectedFolder}
+            selectedQueue={state.selectedQueue}
             folderCounts={folderCounts}
+            queueCounts={queueCounts}
             pipelineStages={state.pipelineStages}
             onSelectFolder={(folder) => {
               actions.setSelectedFolder(folder);
+              actions.setView('email');
+            }}
+            onSelectQueue={(queue) => {
+              actions.setSelectedQueue(queue);
               actions.setView('email');
             }}
             onOpenPipeline={(stage) => {
@@ -122,7 +155,11 @@ export default function App() {
               <EmailListView
                 emails={filteredEmails}
                 selectedEmailId={state.selectedEmailId}
+                assignees={state.assignees}
+                selectedAssigneeFilter={selectedAssigneeFilter}
+                onSelectAssigneeFilter={setSelectedAssigneeFilter}
                 onSelectEmail={actions.selectEmail}
+                resolveAssigneeName={(assigneeId) => assigneeLookup[assigneeId] ?? 'Unassigned'}
               />
             ) : state.view === 'pipeline' ? (
               <PipelineView
@@ -147,6 +184,9 @@ export default function App() {
               onClearDraft={actions.clearReplyDraft}
               onReply={actions.replyToEmail}
               onLinkDeal={actions.linkEmailToDeal}
+              assignees={state.assignees}
+              resolveAssigneeName={(assigneeId) => assigneeLookup[assigneeId] ?? 'Unassigned'}
+              onAssign={actions.reassignEmail}
             />
           </section>
         }

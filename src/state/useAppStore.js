@@ -2,6 +2,18 @@ import { useMemo, useReducer } from 'react';
 import { initialState } from './initialState';
 
 function reducer(state, action) {
+  const withAssignment = (email, assigneeId) => {
+    const assignedAt = assigneeId ? new Date().toISOString() : null;
+    return {
+      ...email,
+      assigneeId: assigneeId ?? null,
+      assignedAt,
+      assignmentHistory: assigneeId
+        ? [...(email.assignmentHistory ?? []), { assigneeId, assignedAt }]
+        : email.assignmentHistory ?? []
+    };
+  };
+
   switch (action.type) {
     case 'setView':
       return { ...state, view: action.payload };
@@ -11,6 +23,8 @@ function reducer(state, action) {
       return { ...state, themeMode: state.themeMode === 'light' ? 'dark' : 'light' };
     case 'setFolder':
       return { ...state, selectedFolder: action.payload };
+    case 'setQueue':
+      return { ...state, selectedQueue: action.payload };
     case 'setStage':
       return { ...state, selectedStage: action.payload, view: 'pipeline' };
     case 'selectEmail': {
@@ -52,7 +66,10 @@ function reducer(state, action) {
             isStarred: false,
             dealId: state.selectedDealId,
             body: action.payload.body,
-            thread: [{ from: 'You', at: now, body: action.payload.body }]
+            thread: [{ from: 'You', at: now, body: action.payload.body }],
+            assigneeId: state.currentUserId,
+            assignedAt: now,
+            assignmentHistory: [{ assigneeId: state.currentUserId, assignedAt: now }]
           },
           ...state.emails
         ],
@@ -122,7 +139,10 @@ function reducer(state, action) {
             isStarred: false,
             dealId: resolvedDealId,
             body: cleanBody,
-            thread: [outboundMessage]
+            thread: [outboundMessage],
+            assigneeId: sourceEmail.assigneeId ?? state.currentUserId,
+            assignedAt: sourceEmail.assignedAt ?? now,
+            assignmentHistory: sourceEmail.assignmentHistory ?? []
           },
           ...state.emails.map((email) =>
             email.id === emailId
@@ -177,6 +197,22 @@ function reducer(state, action) {
     }
     case 'setLoading':
       return { ...state, showLoading: action.payload };
+    case 'assignEmail': {
+      const { emailId, assigneeId } = action.payload;
+      return {
+        ...state,
+        emails: state.emails.map((email) => (email.id === emailId ? withAssignment(email, assigneeId) : email))
+      };
+    }
+    case 'bulkAssignEmails': {
+      const { emailIds, assigneeId } = action.payload;
+      const emailSet = new Set(emailIds ?? []);
+      if (!emailSet.size) return state;
+      return {
+        ...state,
+        emails: state.emails.map((email) => (emailSet.has(email.id) ? withAssignment(email, assigneeId) : email))
+      };
+    }
     case 'showToast':
       return { ...state, toast: { visible: true, message: action.payload } };
     case 'hideToast':
@@ -199,6 +235,7 @@ export function useAppStore() {
       setSearchQuery: (query) => dispatch({ type: 'setSearchQuery', payload: query }),
       toggleTheme: () => dispatch({ type: 'toggleTheme' }),
       setSelectedFolder: (folder) => dispatch({ type: 'setFolder', payload: folder }),
+      setSelectedQueue: (queue) => dispatch({ type: 'setQueue', payload: queue }),
       setSelectedStage: (stage) => dispatch({ type: 'setStage', payload: stage }),
       selectEmail: (emailId) => dispatch({ type: 'selectEmail', payload: emailId }),
       selectDeal: (dealId) => dispatch({ type: 'selectDeal', payload: dealId }),
@@ -211,6 +248,9 @@ export function useAppStore() {
       setReplyDraft: (payload) => dispatch({ type: 'setReplyDraft', payload }),
       clearReplyDraft: (payload) => dispatch({ type: 'clearReplyDraft', payload }),
       setLoading: (loading) => dispatch({ type: 'setLoading', payload: loading }),
+      assignEmail: (payload) => dispatch({ type: 'assignEmail', payload }),
+      reassignEmail: (payload) => dispatch({ type: 'assignEmail', payload }),
+      bulkAssignEmails: (payload) => dispatch({ type: 'bulkAssignEmails', payload }),
       showToast: (message) => dispatch({ type: 'showToast', payload: message }),
       hideToast: () => dispatch({ type: 'hideToast' })
     }),

@@ -34,6 +34,13 @@
 .warn-chip { color: var(--amber); border-color: var(--amber); }
 .count-muted { color: var(--text-secondary); }
 .info-row { font-size: var(--text-xs); color: var(--text-secondary); }
+.chip-row { display: flex; gap: 8px; flex-wrap: wrap; padding: 8px 12px; border-bottom: 1px solid var(--border-subtle); }
+.filter-chip { border: 1px solid var(--border); background: var(--bg-surface); color: var(--text-secondary); padding: 4px 10px; border-radius: 999px; cursor: pointer; font-size: 12px; }
+.filter-chip.is-active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+.assignment-chip { margin-top: 6px; font-size: 11px; color: var(--text-secondary); }
+.assign-controls { display: flex; gap: 8px; margin-top: 10px; }
+.assign-controls select { flex: 1; border: 1px solid var(--border); background: var(--bg-surface); color: var(--text-primary); border-radius: var(--radius-sm); padding: 6px 8px; }
+.assignment-history { margin-top: 12px; }
 
 .dashboard-grid {
   display: grid;
