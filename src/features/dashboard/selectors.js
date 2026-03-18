@@ -7,6 +7,79 @@ function hasAgentReply(email) {
   return (email.thread ?? []).some((message) => message.from === 'You');
 }
 
+function getThreadMessageTime(message) {
+  return normalizeDateValue(message.at)?.getTime() ?? 0;
+}
+
+function getFirstResponseTimeMs(email) {
+  const emailTime = normalizeDateValue(email.date)?.getTime();
+  if (!emailTime) return null;
+  const firstAgentMessage = (email.thread ?? [])
+    .filter((message) => message.from === 'You')
+    .map(getThreadMessageTime)
+    .filter(Boolean)
+    .sort((a, b) => a - b)[0];
+  if (!firstAgentMessage || firstAgentMessage < emailTime) return null;
+  return firstAgentMessage - emailTime;
+}
+
+function getResolutionTimeMs(email) {
+  const emailTime = normalizeDateValue(email.date)?.getTime();
+  if (!emailTime) return null;
+  const threadTimes = (email.thread ?? []).map(getThreadMessageTime).filter(Boolean);
+  const lastThreadTime = threadTimes.length > 0 ? Math.max(...threadTimes) : null;
+  if (!lastThreadTime || lastThreadTime < emailTime) return null;
+  return lastThreadTime - emailTime;
+}
+
+function median(values = []) {
+  if (!values.length) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const midpoint = Math.floor(sorted.length / 2);
+  if (sorted.length % 2 === 1) return sorted[midpoint];
+  return (sorted[midpoint - 1] + sorted[midpoint]) / 2;
+}
+
+function buildReasonCodeDistribution(emails = []) {
+  const counts = new Map();
+  const increment = (reason) => {
+    counts.set(reason, (counts.get(reason) ?? 0) + 1);
+  };
+
+  for (const email of emails) {
+    if (email.reasonCode) {
+      increment(String(email.reasonCode));
+      continue;
+    }
+
+    if ((email.slaEscalations ?? []).length) {
+      increment('sla_escalated');
+      continue;
+    }
+
+    if ((email.approvalStatus ?? 'none') === 'rejected') {
+      increment('approval_rejected');
+      continue;
+    }
+
+    if ((email.approvalStatus ?? 'none') === 'required') {
+      increment('approval_required');
+      continue;
+    }
+
+    if (!email.assigneeId) {
+      increment('unassigned');
+      continue;
+    }
+
+    increment('general_inquiry');
+  }
+
+  return Array.from(counts.entries())
+    .map(([reasonCode, count]) => ({ reasonCode, count }))
+    .sort((a, b) => b.count - a.count);
+}
+
 export function computeSlaStatus(email, now = new Date()) {
   if (email.slaStatus === 'breached') return 'breached';
 
@@ -154,6 +227,37 @@ export function buildDashboardMetrics(deals, emails, pipelineStages, now = new D
 
   const emailsWithSla = selectEmailsWithSla(emails, now);
   const macroAnalytics = buildMacroAnalytics(macroTemplates, macroUsageLog, now);
+  const firstResponseSamples = emailsWithSla.map(getFirstResponseTimeMs).filter((value) => Number.isFinite(value));
+  const resolutionSamples = emailsWithSla.map(getResolutionTimeMs).filter((value) => Number.isFinite(value));
+  const reopenedCount = emailsWithSla.filter((email) => {
+    const thread = email.thread ?? [];
+    let firstAgentReplyIndex = -1;
+    for (let index = 0; index < thread.length; index += 1) {
+      if (thread[index].from === 'You') {
+        firstAgentReplyIndex = index;
+        break;
+      }
+    }
+    if (firstAgentReplyIndex === -1) return false;
+    const postReplyInbound = thread.slice(firstAgentReplyIndex + 1).filter((message) => message.from !== 'You');
+    return postReplyInbound.length > 0;
+  }).length;
+  const stageAging = [
+    ...pipelineStages.map((stage) => stage ?? ''),
+    ...new Set(deals.map((deal) => deal.stage).filter((stage) => !pipelineStages.includes(stage)))
+  ].map((stage) => {
+    const stageDeals = deals.filter((deal) => deal.stage === stage);
+    const days = stageDeals
+      .map((deal) => Number(deal.days))
+      .filter((value) => Number.isFinite(value) && value >= 0);
+    return {
+      stage,
+      dealCount: stageDeals.length,
+      avgDays: days.length ? days.reduce((sum, value) => sum + value, 0) / days.length : 0,
+      medianDays: median(days)
+    };
+  });
+  const reasonCodeDistribution = buildReasonCodeDistribution(emailsWithSla);
 
   return {
     totalDeals: deals.length,
@@ -168,6 +272,11 @@ export function buildDashboardMetrics(deals, emails, pipelineStages, now = new D
     sentEmailCount: emails.filter((email) => email.folder === 'sent').length,
     atRiskEmailCount: emailsWithSla.filter((email) => email.computedSlaStatus === 'atRisk').length,
     overdueEmailCount: emailsWithSla.filter((email) => ['overdue', 'breached'].includes(email.computedSlaStatus)).length,
+    medianFirstResponseTimeMs: median(firstResponseSamples),
+    medianResolutionTimeMs: median(resolutionSamples),
+    reopenRate: emailsWithSla.length > 0 ? reopenedCount / emailsWithSla.length : 0,
+    stageAging,
+    reasonCodeDistribution,
     macroAnalytics
   };
 }
