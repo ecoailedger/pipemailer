@@ -93,6 +93,88 @@ function reducer(state, action) {
         popups: { ...state.popups, link: false }
       };
     }
+    case 'replyToEmail': {
+      const { emailId, to, cc, subject, body, dealId } = action.payload;
+      if (!emailId || !body?.trim()) return state;
+
+      const sourceEmail = state.emails.find((email) => email.id === emailId);
+      if (!sourceEmail) return state;
+
+      const nextId = Math.max(...state.emails.map((email) => email.id), 0) + 1;
+      const now = new Date().toISOString();
+      const resolvedDealId = dealId ?? sourceEmail.dealId ?? null;
+      const cleanBody = body.trim();
+      const outboundMessage = { from: 'You', at: now, body: cleanBody };
+
+      return {
+        ...state,
+        emails: [
+          {
+            id: nextId,
+            folder: 'sent',
+            from: 'You',
+            to: to || sourceEmail.from || 'Unknown recipient',
+            cc: cc || '',
+            subject: subject || sourceEmail.subject || '(No subject)',
+            snippet: cleanBody.slice(0, 90),
+            date: now,
+            isRead: true,
+            isStarred: false,
+            dealId: resolvedDealId,
+            body: cleanBody,
+            thread: [outboundMessage]
+          },
+          ...state.emails.map((email) =>
+            email.id === emailId
+              ? {
+                  ...email,
+                  dealId: resolvedDealId,
+                  thread: [...(email.thread ?? []), outboundMessage]
+                }
+              : email
+          )
+        ],
+        replyDrafts: Object.fromEntries(
+          Object.entries(state.replyDrafts).filter(([draftEmailId]) => Number(draftEmailId) !== emailId)
+        )
+      };
+    }
+    case 'linkEmailToDeal': {
+      const { emailId, dealId } = action.payload;
+      if (!emailId || !dealId) return state;
+
+      const nextState = {
+        ...state,
+        emails: state.emails.map((email) => (email.id === emailId ? { ...email, dealId } : email))
+      };
+
+      if (state.selectedEmailId === emailId) {
+        nextState.selectedDealId = dealId;
+      }
+
+      return nextState;
+    }
+    case 'setReplyDraft': {
+      const { emailId, to = '', cc = '', subject = '', body = '', dealId = null } = action.payload ?? {};
+      if (!emailId) return state;
+      return {
+        ...state,
+        replyDrafts: {
+          ...state.replyDrafts,
+          [emailId]: { emailId, to, cc, subject, body, dealId }
+        }
+      };
+    }
+    case 'clearReplyDraft': {
+      const { emailId } = action.payload ?? {};
+      if (!emailId || !state.replyDrafts[emailId]) return state;
+      return {
+        ...state,
+        replyDrafts: Object.fromEntries(
+          Object.entries(state.replyDrafts).filter(([draftEmailId]) => Number(draftEmailId) !== emailId)
+        )
+      };
+    }
     case 'setLoading':
       return { ...state, showLoading: action.payload };
     case 'showToast':
@@ -120,6 +202,10 @@ export function useAppStore() {
       saveCompose: (payload) => dispatch({ type: 'saveCompose', payload }),
       saveDeal: (payload) => dispatch({ type: 'saveDeal', payload }),
       saveLink: (payload) => dispatch({ type: 'saveLink', payload }),
+      replyToEmail: (payload) => dispatch({ type: 'replyToEmail', payload }),
+      linkEmailToDeal: (payload) => dispatch({ type: 'linkEmailToDeal', payload }),
+      setReplyDraft: (payload) => dispatch({ type: 'setReplyDraft', payload }),
+      clearReplyDraft: (payload) => dispatch({ type: 'clearReplyDraft', payload }),
       setLoading: (loading) => dispatch({ type: 'setLoading', payload: loading }),
       showToast: (message) => dispatch({ type: 'showToast', payload: message }),
       hideToast: () => dispatch({ type: 'hideToast' })
