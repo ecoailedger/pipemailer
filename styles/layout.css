@@ -1,8 +1,14 @@
 .app-shell { height: 100vh; display: flex; flex-direction: column; }
-.topbar { height: 62px; border-bottom: 1px solid var(--border); padding: 10px 16px; display: grid; grid-template-columns: 210px 1fr 190px; gap: 16px; align-items: center; background: var(--bg-surface); }
+.topbar { height: 62px; border-bottom: 1px solid var(--border); padding: 10px 16px; display: grid; grid-template-columns: 210px minmax(240px, 420px) minmax(520px, 1fr); gap: 14px; align-items: center; background: var(--bg-surface); }
 .logo { font-weight: 700; font-size: 20px; letter-spacing: .3px; }
 .logo span { color: var(--accent); }
-.top-actions { display: flex; gap: 12px; justify-content: flex-end; }
+.top-actions { display: flex; gap: 12px; justify-content: flex-end; flex-wrap: wrap; column-gap: 10px; row-gap: 8px; }
+#searchBox { width: 100%; max-width: 420px; justify-self: start; }
+.top-actions .topbar-btn { flex: 0 0 auto; }
+.top-actions .topbar-btn--view { min-width: 124px; }
+.top-actions .topbar-btn--add-email { min-width: 112px; }
+.top-actions .topbar-btn--add-deal { min-width: 144px; }
+.top-actions .dx-button-content { white-space: nowrap; }
 .content { flex: 1; min-height: 0; display: grid; grid-template-columns: var(--left-pane-width, 280px) minmax(320px, 1fr) var(--right-pane-width, 500px); overflow: hidden; }
 .panel { border-right: 1px solid var(--border-subtle); background: var(--bg-surface); min-height: 0; overflow: auto; }
 .panel:last-child { border-right: none; border-left: 1px solid var(--border-subtle); }
@@ -39,14 +45,22 @@
 
 @media (max-width: 1440px) { :root { --left-pane-width: 260px; --right-pane-width: 430px; } }
 @media (max-width: 1200px) {
-  .topbar { grid-template-columns: 180px 1fr 160px; gap: 12px; }
+  .topbar { grid-template-columns: 170px minmax(180px, 300px) minmax(420px, 1fr); gap: 10px; }
+  #searchBox { max-width: 300px; }
+  .top-actions { column-gap: 8px; row-gap: 6px; }
+  .top-actions .topbar-btn--view { min-width: 110px; }
+  .top-actions .topbar-btn--add-email { min-width: 104px; }
+  .top-actions .topbar-btn--add-deal { min-width: 132px; }
   :root { --left-pane-width: 240px; --right-pane-width: 340px; }
 }
 @media (max-width: 992px) {
-  .topbar { grid-template-columns: 1fr auto; grid-template-areas: "logo actions" "search search"; height: auto; }
+  .topbar { grid-template-columns: 1fr; grid-template-areas: "logo" "search" "actions"; height: auto; gap: 10px; }
   .logo { grid-area: logo; }
-  #searchBox { grid-area: search; min-width: 0; }
-  .top-actions { grid-area: actions; gap: 8px; }
+  #searchBox { grid-area: search; min-width: 0; max-width: none; justify-self: stretch; }
+  .top-actions { grid-area: actions; justify-content: flex-start; gap: 8px; }
+  .top-actions .topbar-btn--view { min-width: 102px; }
+  .top-actions .topbar-btn--add-email { min-width: 100px; }
+  .top-actions .topbar-btn--add-deal { min-width: 120px; }
   .content { grid-template-columns: 88px minmax(0, 1fr) 320px; }
   .content > .panel:first-child { padding-top: 6px; }
   .content > .panel:first-child .section-title,.content > .panel:first-child .insights-card,.content > .panel:first-child #stageChart { display: none; }
@@ -63,6 +77,10 @@
   body { height: auto; min-height: 100vh; overflow: auto; }
   .app-shell { min-height: 100vh; height: auto; }
   .topbar { position: sticky; top: 0; z-index: 10; }
+  .top-actions { row-gap: 6px; }
+  .top-actions .topbar-btn--view { min-width: 90px; }
+  .top-actions .topbar-btn--add-email { min-width: 94px; }
+  .top-actions .topbar-btn--add-deal { min-width: 110px; }
   .content { grid-template-columns: 88px minmax(0, 1fr); grid-template-rows: minmax(380px, 1fr) auto; overflow: visible; }
   .content > .right-panel { grid-column: 1 / -1; border-left: none; border-top: 1px solid var(--border-subtle); max-height: none; }
   .content.details-expanded { grid-template-columns: 88px minmax(0, 1fr); }
