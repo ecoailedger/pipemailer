@@ -1,6 +1,5 @@
 import Button from 'devextreme-react/button';
 import TextBox from 'devextreme-react/text-box';
-import { useEffect, useState } from 'react';
 
 /**
  * @param {{
@@ -28,23 +27,6 @@ export default function TopBar({
   onSwitchToPipeline,
   onSwitchToDashboard
 }) {
-  const [isCompactTopbar, setIsCompactTopbar] = useState(false);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return undefined;
-
-    const mediaQuery = window.matchMedia('(max-width: 768px)');
-    const syncCompactMode = () => setIsCompactTopbar(mediaQuery.matches);
-    syncCompactMode();
-
-    mediaQuery.addEventListener('change', syncCompactMode);
-    return () => mediaQuery.removeEventListener('change', syncCompactMode);
-  }, []);
-
-  const emailViewLabel = isCompactTopbar ? 'Email' : 'Email View';
-  const pipelineViewLabel = isCompactTopbar ? 'Pipeline' : 'Pipeline View';
-  const dashboardLabel = isCompactTopbar ? 'Dashboard' : 'Dashboard View';
-
   return (
     <header className="topbar">
       <div className="logo">
@@ -61,21 +43,21 @@ export default function TopBar({
       <div className="top-actions">
         <Button
           className="topbar-btn topbar-btn--view"
-          text={emailViewLabel}
+          text="Email View"
           type={view === 'email' ? 'default' : 'normal'}
           stylingMode="outlined"
           onClick={onSwitchToEmail}
         />
         <Button
           className="topbar-btn topbar-btn--view"
-          text={pipelineViewLabel}
+          text="Pipeline View"
           type={view === 'pipeline' ? 'default' : 'normal'}
           stylingMode="outlined"
           onClick={onSwitchToPipeline}
         />
         <Button
           className="topbar-btn topbar-btn--view"
-          text={dashboardLabel}
+          text="Dashboard"
           type={view === 'dashboard' ? 'default' : 'normal'}
           stylingMode="outlined"
           onClick={onSwitchToDashboard}

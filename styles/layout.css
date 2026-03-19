@@ -1,9 +1,9 @@
 .app-shell { height: 100vh; display: flex; flex-direction: column; }
-.topbar { height: 62px; border-bottom: 1px solid var(--border); padding: 10px 16px; display: grid; grid-template-columns: 210px minmax(240px, 420px) minmax(520px, 1fr); gap: 14px; align-items: center; background: var(--bg-surface); }
+.topbar { height: 62px; border-bottom: 1px solid var(--border); padding: 10px 16px; display: grid; grid-template-columns: 210px minmax(260px, 1fr) auto; gap: 16px; align-items: center; background: var(--bg-surface); }
 .logo { font-weight: 700; font-size: 20px; letter-spacing: .3px; }
 .logo span { color: var(--accent); }
 .top-actions { display: flex; gap: 12px; justify-content: flex-end; flex-wrap: wrap; column-gap: 10px; row-gap: 8px; }
-#searchBox { width: 100%; max-width: 420px; justify-self: start; }
+#searchBox { width: 100%; max-width: 360px; justify-self: start; }
 .top-actions .topbar-btn { flex: 0 0 auto; }
 .top-actions .topbar-btn--view { min-width: 124px; }
 .top-actions .topbar-btn--add-email { min-width: 112px; }
@@ -45,7 +45,7 @@
 
 @media (max-width: 1440px) { :root { --left-pane-width: 260px; --right-pane-width: 430px; } }
 @media (max-width: 1200px) {
-  .topbar { grid-template-columns: 170px minmax(180px, 300px) minmax(420px, 1fr); gap: 10px; }
+  .topbar { grid-template-columns: 170px minmax(220px, 1fr) auto; gap: 10px; }
   #searchBox { max-width: 300px; }
   .top-actions { column-gap: 8px; row-gap: 6px; }
   .top-actions .topbar-btn--view { min-width: 110px; }
