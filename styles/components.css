@@ -8,8 +8,8 @@
 .badge { display:inline-block; background: var(--accent-dim); color: var(--accent); padding: 2px 6px; border-radius: 999px; font-size: 11px; margin-top: 6px; }
 .unread-dot { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; display: inline-block; margin-right: 6px; }
 #kanbanView { display:none; overflow:auto; padding: 12px; }
-.kanban-row { display:flex; gap:12px; min-height: 100%; }
-.kanban-col { min-width: 220px; max-width: 220px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-md); display:flex; flex-direction:column; }
+.kanban-row { display:flex; gap:12px; width: 100%; min-height: 100%; }
+.kanban-col { flex: 1 1 clamp(160px, 16vw, 260px); min-width: 0; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-md); display:flex; flex-direction:column; }
 .kanban-head { padding:10px; border-bottom:1px solid var(--border); font:500 12px var(--font-mono); color:var(--text-secondary); }
 .kanban-body { padding:8px; min-height:120px; }
 .deal-card { background: var(--bg-surface); border:1px solid var(--border); border-radius: var(--radius-md); padding:10px; margin-bottom:8px; cursor:grab; }
