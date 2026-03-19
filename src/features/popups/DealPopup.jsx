@@ -19,6 +19,11 @@ function getInitialReturnForm(stages, emailId = null) {
     condition: '',
     disposition: '',
     refundAmount: 0,
+    goodsReceivedDate: '',
+    inspectionOutcome: '',
+    refundMethod: '',
+    creditNoteId: '',
+    refundPostedAt: '',
     stage: stages[0] ?? 'Leads',
     emailId
   };
@@ -126,6 +131,11 @@ export default function DealPopup({ open, stages, defaultEmailId = null, onClose
             <TextBox label="Return Reason" labelMode="floating" stylingMode="filled" className="mb-3" value={returnForm.returnReason} onValueChanged={(event) => setReturnForm((prev) => ({ ...prev, returnReason: event.value ?? '' }))} />
             <TextBox label="Condition" labelMode="floating" stylingMode="filled" className="mb-3" value={returnForm.condition} onValueChanged={(event) => setReturnForm((prev) => ({ ...prev, condition: event.value ?? '' }))} />
             <TextBox label="Disposition" labelMode="floating" stylingMode="filled" className="mb-3" value={returnForm.disposition} onValueChanged={(event) => setReturnForm((prev) => ({ ...prev, disposition: event.value ?? '' }))} />
+            <TextBox label="Goods Received Date" mode="date" labelMode="floating" stylingMode="filled" className="mb-3" value={returnForm.goodsReceivedDate} onValueChanged={(event) => setReturnForm((prev) => ({ ...prev, goodsReceivedDate: event.value ?? '' }))} />
+            <TextBox label="Inspection Outcome" labelMode="floating" stylingMode="filled" className="mb-3" value={returnForm.inspectionOutcome} onValueChanged={(event) => setReturnForm((prev) => ({ ...prev, inspectionOutcome: event.value ?? '' }))} />
+            <TextBox label="Refund Method" labelMode="floating" stylingMode="filled" className="mb-3" value={returnForm.refundMethod} onValueChanged={(event) => setReturnForm((prev) => ({ ...prev, refundMethod: event.value ?? '' }))} />
+            <TextBox label="Credit Note ID" labelMode="floating" stylingMode="filled" className="mb-3" value={returnForm.creditNoteId} onValueChanged={(event) => setReturnForm((prev) => ({ ...prev, creditNoteId: event.value ?? '' }))} />
+            <TextBox label="Refund Posted Timestamp" mode="datetime-local" labelMode="floating" stylingMode="filled" className="mb-3" value={returnForm.refundPostedAt} onValueChanged={(event) => setReturnForm((prev) => ({ ...prev, refundPostedAt: event.value ?? '' }))} />
             <NumberBox label="Refund Amount" labelMode="floating" stylingMode="filled" format="$ #,##0.00" className="mb-3" value={returnForm.refundAmount} onValueChanged={(event) => setReturnForm((prev) => ({ ...prev, refundAmount: Number(event.value) || 0 }))} />
             <SelectBox items={stages} label="Stage" labelMode="floating" stylingMode="filled" className="mb-3" value={returnForm.stage} onValueChanged={(event) => setReturnForm((prev) => ({ ...prev, stage: event.value ?? prev.stage }))} />
           </>

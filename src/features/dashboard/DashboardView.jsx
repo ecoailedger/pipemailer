@@ -11,6 +11,8 @@ const KPI_ITEMS = [
   { key: 'unlinkedEmailCount', label: 'Unlinked Emails', format: (value) => String(value) },
   { key: 'atRiskEmailCount', label: 'SLA At Risk', format: (value) => String(value) },
   { key: 'overdueEmailCount', label: 'SLA Overdue', format: (value) => String(value) },
+  { key: 'awaitingWarehouseCount', label: 'Awaiting Warehouse', format: (value) => String(value) },
+  { key: 'awaitingFinanceCount', label: 'Awaiting Finance', format: (value) => String(value) },
   { key: 'medianFirstResponseTimeMs', label: 'Median First Response', format: (value) => `${(value / (60 * 60 * 1000)).toFixed(1)}h` },
   { key: 'medianResolutionTimeMs', label: 'Median Resolution', format: (value) => `${(value / (60 * 60 * 1000)).toFixed(1)}h` },
   { key: 'reopenRate', label: 'Reopen Rate', format: (value) => `${(value * 100).toFixed(1)}%` }
@@ -42,6 +44,20 @@ function getMedian(values = []) {
   return sorted.length % 2 ? sorted[midpoint] : (sorted[midpoint - 1] + sorted[midpoint]) / 2;
 }
 
+function normalizeStageLabel(stage) {
+  return String(stage ?? '').trim().toLowerCase();
+}
+
+function isAwaitingWarehouseStage(stage) {
+  const normalized = normalizeStageLabel(stage);
+  return normalized === 'awaiting warehouse' || normalized === 'warehouse pending';
+}
+
+function isAwaitingFinanceStage(stage) {
+  const normalized = normalizeStageLabel(stage);
+  return normalized === 'awaiting finance' || normalized === 'finance pending';
+}
+
 /**
  * @param {{
  *  dashboardMetrics: {
@@ -54,6 +70,8 @@ function getMedian(values = []) {
  *    unlinkedEmailCount: number,
  *    atRiskEmailCount: number,
  *    overdueEmailCount: number,
+ *    awaitingWarehouseCount?: number,
+ *    awaitingFinanceCount?: number,
  *    medianFirstResponseTimeMs: number,
  *    medianResolutionTimeMs: number,
  *    reopenRate: number,
@@ -211,6 +229,8 @@ export default function DashboardView({
       unlinkedEmailCount: filteredEmails.filter((email) => email.dealId == null).length,
       atRiskEmailCount: filteredEmails.filter((email) => email.computedSlaStatus === 'atRisk').length,
       overdueEmailCount: filteredEmails.filter((email) => ['overdue', 'breached'].includes(email.computedSlaStatus)).length,
+      awaitingWarehouseCount: filteredDeals.filter((deal) => deal.entityType === 'return' && isAwaitingWarehouseStage(deal.stage)).length,
+      awaitingFinanceCount: filteredDeals.filter((deal) => deal.entityType === 'return' && isAwaitingFinanceStage(deal.stage)).length,
       medianFirstResponseTimeMs: getMedian(firstResponseHours),
       medianResolutionTimeMs: getMedian(resolutionSamples),
       reopenRate: filteredEmails.length ? reopenedCount / filteredEmails.length : 0
