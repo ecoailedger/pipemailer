@@ -1,5 +1,14 @@
 import { formatCurrency } from '../../utils/formatters';
 
+const RETURN_STAGE_BADGE_CONFIG = {
+  'Awaiting Customer': { label: 'Awaiting customer', className: 'return-awaiting-customer' },
+  'Awaiting Warehouse': { label: 'Awaiting warehouse', className: 'return-awaiting-warehouse' },
+  'Inspection Complete': { label: 'Inspection complete', className: 'return-inspection-complete' },
+  'Ready to Refund': { label: 'Ready to refund', className: 'return-ready-refund' },
+  'Ready to Replace': { label: 'Ready to replace', className: 'return-ready-replace' },
+  Closed: { label: 'Closed', className: 'return-closed' }
+};
+
 /**
  * @param {{
  *  deals: Array<{id:number,title:string,contact:string,stage:string,value:number,approvalStatus?:string}>,
@@ -9,6 +18,8 @@ import { formatCurrency } from '../../utils/formatters';
  * }} props
  */
 export default function PipelineView({ deals, stages, selectedDealId, onSelectDeal }) {
+  const getReturnStageBadge = (stage) => RETURN_STAGE_BADGE_CONFIG[stage] ?? null;
+
   return (
     <div id="kanbanView" style={{ display: 'block' }}>
       <div className="kanban-row">
@@ -34,6 +45,11 @@ export default function PipelineView({ deals, stages, selectedDealId, onSelectDe
                           : deal.approvalStatus === 'approved'
                             ? 'Approved'
                             : 'Rejected'}
+                      </div>
+                    ) : null}
+                    {getReturnStageBadge(deal.stage) ? (
+                      <div className={`pipeline-status-badge ${getReturnStageBadge(deal.stage).className}`}>
+                        {getReturnStageBadge(deal.stage).label}
                       </div>
                     ) : null}
                     {deal.returnCase ? (

@@ -3,6 +3,25 @@ import { initialState } from './initialState';
 
 const PRIORITY_ORDER = ['low', 'medium', 'high', 'urgent'];
 const APP_STORE_STORAGE_KEY = 'pipemailer:app-store:v1';
+const RETURN_CLOSING_STAGES = new Set(['Closed']);
+
+function normalizeReturnOutcome(value) {
+  const normalized = String(value ?? '').trim().toLowerCase();
+  if (['refund', 'replacement'].includes(normalized)) return normalized;
+  return '';
+}
+
+function validateReturnStageTransition(deal, nextStage) {
+  if (deal?.entityType !== 'return' || !RETURN_CLOSING_STAGES.has(nextStage)) return true;
+  const returnCase = deal.returnCase ?? {};
+  const disposition = String(returnCase.disposition ?? '').trim();
+  const returnOutcome = normalizeReturnOutcome(returnCase.returnOutcome);
+  const refundAmount = Number(returnCase.refundAmount);
+
+  if (!disposition || !returnOutcome) return false;
+  if (returnOutcome === 'refund' && (!Number.isFinite(refundAmount) || refundAmount < 0)) return false;
+  return true;
+}
 
 function getPersistableSnapshot(state) {
   return {
@@ -233,6 +252,7 @@ function reducer(state, action) {
       if (!Number.isFinite(quantity) || quantity <= 0 || !Number.isFinite(refundAmount) || refundAmount < 0) {
         return state;
       }
+      const returnOutcome = normalizeReturnOutcome(action.payload.returnOutcome) || (refundAmount > 0 ? 'refund' : 'replacement');
 
       const nextReturnId = Math.max(...state.returnCases.map((item) => item.id), 0) + 1;
       const emailId = action.payload.emailId ?? state.selectedEmailId ?? null;
@@ -247,7 +267,8 @@ function reducer(state, action) {
         returnReason: action.payload.returnReason.trim(),
         condition: action.payload.condition.trim(),
         disposition: action.payload.disposition.trim(),
-        refundAmount
+        refundAmount,
+        returnOutcome
       };
 
       const deal = {
@@ -273,6 +294,18 @@ function reducer(state, action) {
         selectedDealId: nextId,
         popups: { ...state.popups, deal: false },
         view: 'pipeline'
+      };
+    }
+    case 'updateDealStage': {
+      const { dealId, stage } = action.payload ?? {};
+      if (!dealId || !String(stage ?? '').trim()) return state;
+      const nextStage = String(stage).trim();
+      const targetDeal = state.deals.find((deal) => deal.id === dealId);
+      if (!targetDeal || !validateReturnStageTransition(targetDeal, nextStage)) return state;
+
+      return {
+        ...state,
+        deals: state.deals.map((deal) => (deal.id === dealId ? { ...deal, stage: nextStage } : deal))
       };
     }
     case 'saveLink': {
@@ -669,6 +702,7 @@ export function useAppStore() {
       setSelectedStage: (stage) => dispatch({ type: 'setStage', payload: stage }),
       selectEmail: (emailId) => dispatch({ type: 'selectEmail', payload: emailId }),
       selectDeal: (dealId) => dispatch({ type: 'selectDeal', payload: dealId }),
+      updateDealStage: (payload) => dispatch({ type: 'updateDealStage', payload }),
       setPopupOpen: (name, open) => dispatch({ type: 'setPopupOpen', payload: { name, open } }),
       saveCompose: (payload) => dispatch({ type: 'saveCompose', payload }),
       saveDeal: (payload) => dispatch({ type: 'saveDeal', payload }),

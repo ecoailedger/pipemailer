@@ -1,7 +1,14 @@
 const DAY_MS = 24 * 60 * 60 * 1000;
 const BASE_TIME_ISO = '2026-03-18T12:00:00.000Z';
 const FOLDERS = ['inbox', 'sent', 'drafts', 'archive'];
-const STAGES = ['Leads', 'Qualified', 'Demo Scheduled', 'Proposal', 'Negotiation', 'Security Review', 'Won', 'Lost'];
+const RETURNS_STAGES = [
+  'Awaiting Customer',
+  'Awaiting Warehouse',
+  'Inspection Complete',
+  'Ready to Refund',
+  'Ready to Replace',
+  'Closed'
+];
 const FIRST_NAMES = [
   'Maya', 'Liam', 'Sara', 'Noah', 'Ava', 'Ethan', 'Olivia', 'Mason', 'Emma', 'James',
   'Priya', 'Daniel', 'Sophia', 'Lucas', 'Amelia', 'Henry', 'Isla', 'Benjamin', 'Aria', 'Owen'
@@ -205,31 +212,48 @@ export function buildMockDeals(count, seed) {
     const id = index + 1;
     const person = buildPerson(index);
     const company = buildCompany(index);
-    const stage = STAGES[index % STAGES.length];
-    const value = 12000 + Math.floor(rng() * 160000);
+    const stage = RETURNS_STAGES[index % RETURNS_STAGES.length];
+    const refundValue = 25 + Math.floor(rng() * 575);
+    const disposition = pick(rng, ['restock', 'recycle', 'quarantine']);
+    const outcome = stage === 'Ready to Replace' ? 'replacement' : 'refund';
     const probabilityMap = {
-      Leads: 15,
-      Qualified: 35,
-      'Demo Scheduled': 50,
-      Proposal: 65,
-      Negotiation: 80,
-      'Security Review': 72,
-      Won: 100,
-      Lost: 0
+      'Awaiting Customer': 15,
+      'Awaiting Warehouse': 35,
+      'Inspection Complete': 60,
+      'Ready to Refund': 85,
+      'Ready to Replace': 82,
+      Closed: 100
+    };
+
+    const returnCase = {
+      id: id,
+      emailId: null,
+      dealId: id,
+      rmaNumber: `RMA-${12000 + id}`,
+      orderNumber: `ORD-${83000 + id}`,
+      sku: `SKU-${100 + (index % 750)}`,
+      quantity: 1 + (index % 3),
+      returnReason: pick(rng, ['Damaged in transit', 'Wrong item shipped', 'Arrived late', 'No longer needed']),
+      condition: pick(rng, ['new', 'opened', 'damaged']),
+      disposition,
+      refundAmount: outcome === 'refund' ? refundValue : 0,
+      returnOutcome: outcome
     };
 
     return {
       id,
-      title: `${company} ${pick(rng, ['Expansion', 'Renewal', 'Migration', 'Pilot', 'Program'])}`,
-      contact: `${person} · ${company}`,
-      value,
+      title: `RMA ${returnCase.rmaNumber}`,
+      contact: `${person} · Order ${returnCase.orderNumber}`,
+      value: refundValue,
       stage,
       probability: probabilityMap[stage],
       days: 1 + Math.floor((baseTime.getTime() - (baseTime.getTime() - (index % 21) * DAY_MS)) / DAY_MS),
       notes: [
-        `Auto-generated mock deal ${id}`,
-        `Last touchpoint ${index % 14} days ago`
-      ]
+        `Auto-generated return case ${id}`,
+        `Last customer update ${index % 14} days ago`
+      ],
+      entityType: 'return',
+      returnCase
     };
   });
 }
@@ -282,4 +306,4 @@ export function buildMockEmails(count, seed) {
   });
 }
 
-export { STAGES as MOCK_PIPELINE_STAGES };
+export { RETURNS_STAGES as MOCK_PIPELINE_STAGES };
