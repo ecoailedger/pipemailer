@@ -39,10 +39,23 @@ function loadInitialState() {
     if (!rawSnapshot) return initialState;
     const parsedSnapshot = JSON.parse(rawSnapshot);
 
+    const persistedDeals = Array.isArray(parsedSnapshot?.deals) ? parsedSnapshot.deals : initialState.deals;
+    const validPipelineStages = new Set(initialState.pipelineStages ?? []);
+    const fallbackStage = initialState.pipelineStages?.[0] ?? null;
+    const normalizedDeals = persistedDeals.map((deal) => {
+      if (!fallbackStage) return deal;
+      if (!deal || typeof deal !== 'object') return deal;
+      if (validPipelineStages.has(deal.stage)) return deal;
+      return {
+        ...deal,
+        stage: fallbackStage
+      };
+    });
+
     return {
       ...initialState,
       emails: Array.isArray(parsedSnapshot?.emails) ? parsedSnapshot.emails : initialState.emails,
-      deals: Array.isArray(parsedSnapshot?.deals) ? parsedSnapshot.deals : initialState.deals,
+      deals: normalizedDeals,
       returnCases: Array.isArray(parsedSnapshot?.returnCases) ? parsedSnapshot.returnCases : initialState.returnCases
     };
   } catch (_error) {
