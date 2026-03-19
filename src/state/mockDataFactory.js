@@ -5,6 +5,7 @@ const RETURNS_STAGES = [
   'Awaiting Customer',
   'Awaiting Warehouse',
   'Inspection Complete',
+  'Awaiting Finance',
   'Ready to Refund',
   'Ready to Replace',
   'Closed'
@@ -220,6 +221,7 @@ export function buildMockDeals(count, seed) {
       'Awaiting Customer': 15,
       'Awaiting Warehouse': 35,
       'Inspection Complete': 60,
+      'Awaiting Finance': 75,
       'Ready to Refund': 85,
       'Ready to Replace': 82,
       Closed: 100
@@ -236,6 +238,11 @@ export function buildMockDeals(count, seed) {
       returnReason: pick(rng, ['Damaged in transit', 'Wrong item shipped', 'Arrived late', 'No longer needed']),
       condition: pick(rng, ['new', 'opened', 'damaged']),
       disposition,
+      goodsReceivedDate: new Date(baseTime.getTime() - (index % 10) * DAY_MS).toISOString().slice(0, 10),
+      inspectionOutcome: pick(rng, ['passed', 'failed', 'partial']),
+      refundMethod: pick(rng, ['original_payment', 'store_credit', 'bank_transfer']),
+      creditNoteId: `CN-${9000 + id}`,
+      refundPostedAt: outcome === 'refund' ? new Date(baseTime.getTime() - (index % 6) * DAY_MS).toISOString() : '',
       refundAmount: outcome === 'refund' ? refundValue : 0,
       returnOutcome: outcome
     };

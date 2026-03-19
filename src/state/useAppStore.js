@@ -303,6 +303,11 @@ function reducer(state, action) {
         returnReason: action.payload.returnReason.trim(),
         condition: action.payload.condition.trim(),
         disposition: action.payload.disposition.trim(),
+        goodsReceivedDate: String(action.payload.goodsReceivedDate ?? '').trim(),
+        inspectionOutcome: String(action.payload.inspectionOutcome ?? '').trim(),
+        refundMethod: String(action.payload.refundMethod ?? '').trim(),
+        creditNoteId: String(action.payload.creditNoteId ?? '').trim(),
+        refundPostedAt: String(action.payload.refundPostedAt ?? '').trim(),
         refundAmount,
         returnOutcome
       };

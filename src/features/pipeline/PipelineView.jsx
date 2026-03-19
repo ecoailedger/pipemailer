@@ -4,6 +4,7 @@ const RETURN_STAGE_BADGE_CONFIG = {
   'Awaiting Customer': { label: 'Awaiting customer', className: 'return-awaiting-customer' },
   'Awaiting Warehouse': { label: 'Awaiting warehouse', className: 'return-awaiting-warehouse' },
   'Inspection Complete': { label: 'Inspection complete', className: 'return-inspection-complete' },
+  'Awaiting Finance': { label: 'Awaiting finance', className: 'return-awaiting-finance' },
   'Ready to Refund': { label: 'Ready to refund', className: 'return-ready-refund' },
   'Ready to Replace': { label: 'Ready to replace', className: 'return-ready-replace' },
   Closed: { label: 'Closed', className: 'return-closed' }
