@@ -29,6 +29,7 @@ export default function TopBar({
   onSwitchToDashboard
 }) {
   const [isCompactTopbar, setIsCompactTopbar] = useState(false);
+  const [isNarrowTopbar, setIsNarrowTopbar] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
@@ -41,9 +42,21 @@ export default function TopBar({
     return () => mediaQuery.removeEventListener('change', syncCompactMode);
   }, []);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    const mediaQuery = window.matchMedia('(max-width: 992px)');
+    const syncNarrowMode = () => setIsNarrowTopbar(mediaQuery.matches);
+    syncNarrowMode();
+
+    mediaQuery.addEventListener('change', syncNarrowMode);
+    return () => mediaQuery.removeEventListener('change', syncNarrowMode);
+  }, []);
+
   const emailViewLabel = isCompactTopbar ? 'Email' : 'Email View';
   const pipelineViewLabel = isCompactTopbar ? 'Pipeline' : 'Pipeline View';
   const dashboardLabel = 'Dashboard';
+  const addDealLabel = isNarrowTopbar ? 'Add Deal' : 'Add Deal / Return';
 
   return (
     <header className="topbar">
@@ -81,7 +94,7 @@ export default function TopBar({
           onClick={onSwitchToDashboard}
         />
         <Button className="topbar-btn topbar-btn--add-email" text="Add Email" type="default" stylingMode="contained" onClick={onCompose} />
-        <Button className="topbar-btn topbar-btn--add-deal" text="Add Deal / Return" stylingMode="outlined" onClick={onCreateDeal} />
+        <Button className="topbar-btn topbar-btn--add-deal" text={addDealLabel} stylingMode="outlined" onClick={onCreateDeal} />
         <Button
           className="topbar-btn topbar-btn--theme"
           text={themeMode === 'light' ? 'Dark' : 'Light'}
