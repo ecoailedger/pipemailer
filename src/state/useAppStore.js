@@ -2,7 +2,7 @@ import { useEffect, useMemo, useReducer } from 'react';
 import { initialState } from './initialState';
 
 const PRIORITY_ORDER = ['low', 'medium', 'high', 'urgent'];
-const APP_STORE_STORAGE_KEY = 'pipemailer:app-store:v1';
+const APP_STORE_STORAGE_KEY = 'pipemailer:app-store:v2';
 const RETURN_CLOSING_STAGES = new Set(['Closed']);
 
 function normalizeReturnOutcome(value) {
@@ -42,15 +42,38 @@ function loadInitialState() {
     const persistedDeals = Array.isArray(parsedSnapshot?.deals) ? parsedSnapshot.deals : initialState.deals;
     const validPipelineStages = new Set(initialState.pipelineStages ?? []);
     const fallbackStage = initialState.pipelineStages?.[0] ?? null;
-    const normalizedDeals = persistedDeals.map((deal) => {
-      if (!fallbackStage) return deal;
-      if (!deal || typeof deal !== 'object') return deal;
-      if (validPipelineStages.has(deal.stage)) return deal;
-      return {
-        ...deal,
-        stage: fallbackStage
-      };
-    });
+    const hasStages = validPipelineStages.size > 0;
+    const stageValidation = persistedDeals.reduce(
+      (summary, deal) => {
+        if (!deal || typeof deal !== 'object') return summary;
+        if (validPipelineStages.has(deal.stage)) {
+          summary.valid += 1;
+        } else {
+          summary.invalid += 1;
+        }
+        return summary;
+      },
+      { valid: 0, invalid: 0 }
+    );
+
+    const shouldUseInitialDeals =
+      hasStages &&
+      stageValidation.invalid > 0 &&
+      stageValidation.valid === 0 &&
+      Array.isArray(initialState.deals) &&
+      initialState.deals.length > 0;
+
+    const normalizedDeals = shouldUseInitialDeals
+      ? initialState.deals
+      : persistedDeals.map((deal) => {
+          if (!fallbackStage) return deal;
+          if (!deal || typeof deal !== 'object') return deal;
+          if (validPipelineStages.has(deal.stage)) return deal;
+          return {
+            ...deal,
+            stage: fallbackStage
+          };
+        });
 
     return {
       ...initialState,
