@@ -11,7 +11,12 @@ const emailCount = LARGE_DATASET ? 250 : 24;
 export const initialDeals = buildMockDeals(dealCount, DEV_SEED);
 export const initialEmails = buildMockEmails(emailCount, DEV_SEED);
 
-export const pipelineStages = MOCK_PIPELINE_STAGES;
+export const stageSetsByMode = {
+  returns: MOCK_PIPELINE_STAGES
+};
+
+export const pipelineMode = 'returns';
+export const pipelineStages = stageSetsByMode[pipelineMode];
 
 export const macroCategories = [
   { id: 'returns', label: 'Returns' },
@@ -79,6 +84,7 @@ export const initialState = {
   teamAssigneeIds: ['u-alex', 'u-jordan', 'u-riley', 'u-taylor'],
   deals: initialDeals,
   returnCases: [],
+  pipelineMode,
   pipelineStages,
   macroCategories,
   macroTemplates: initialMacroTemplates,
