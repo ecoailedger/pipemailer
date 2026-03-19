@@ -1,12 +1,13 @@
 .app-shell { height: 100vh; display: flex; flex-direction: column; }
-.topbar { min-height: 62px; border-bottom: 1px solid var(--border); padding: 10px 16px; display: grid; grid-template-columns: 210px minmax(260px, 1fr) auto; gap: 16px; align-items: center; background: var(--bg-surface); }
+.topbar { min-height: 62px; border-bottom: 1px solid var(--border); padding: 10px 16px; display: grid; grid-template-columns: 210px minmax(220px, 360px) minmax(0, 1fr); gap: 16px; align-items: center; background: var(--bg-surface); }
 .logo { font-weight: 700; font-size: 20px; letter-spacing: .3px; }
 .logo span { color: var(--accent); }
 .top-actions { display: flex; gap: 12px; justify-content: flex-end; flex-wrap: wrap; column-gap: 10px; row-gap: 8px; }
 .top-actions .topbar-btn { flex: 0 0 auto; }
-.top-actions .topbar-btn--view { min-width: 112px; }
-.top-actions .topbar-btn--add-email { min-width: 112px; }
-.top-actions .topbar-btn--add-deal { min-width: 144px; }
+.top-actions .topbar-btn--view { min-width: 100px; }
+.top-actions .topbar-btn--add-email { min-width: 104px; }
+.top-actions .topbar-btn--add-deal { min-width: 126px; }
+#searchBox { width: 100%; max-width: 360px; min-width: 0; }
 .content { flex: 1; min-height: 0; display: grid; grid-template-columns: var(--left-pane-width, 280px) minmax(320px, 1fr) var(--right-pane-width, 500px); overflow: hidden; }
 .panel { border-right: 1px solid var(--border-subtle); background: var(--bg-surface); min-height: 0; overflow: auto; }
 .panel:last-child { border-right: none; border-left: 1px solid var(--border-subtle); }
@@ -43,17 +44,18 @@
 
 @media (max-width: 1440px) { :root { --left-pane-width: 260px; --right-pane-width: 430px; } }
 @media (max-width: 1200px) {
-  .topbar { grid-template-columns: 170px minmax(220px, 1fr) auto; gap: 10px; }
+  .topbar { grid-template-columns: 170px minmax(200px, 320px) minmax(0, 1fr); gap: 10px; }
   .top-actions { column-gap: 8px; row-gap: 6px; }
-  .top-actions .topbar-btn--view { min-width: 104px; }
-  .top-actions .topbar-btn--add-email { min-width: 104px; }
-  .top-actions .topbar-btn--add-deal { min-width: 132px; }
+  .top-actions .topbar-btn--view { min-width: 96px; }
+  .top-actions .topbar-btn--add-email { min-width: 98px; }
+  .top-actions .topbar-btn--add-deal { min-width: 116px; }
+  #searchBox { max-width: 320px; }
   :root { --left-pane-width: 240px; --right-pane-width: 340px; }
 }
 @media (max-width: 992px) {
   .topbar { grid-template-columns: 1fr; grid-template-areas: "logo" "search" "actions"; min-height: 62px; gap: 10px; }
   .logo { grid-area: logo; }
-  #searchBox { grid-area: search; min-width: 0; }
+  #searchBox { grid-area: search; min-width: 0; max-width: 100%; }
   .top-actions { grid-area: actions; justify-content: flex-start; gap: 8px; }
   .top-actions .topbar-btn--view { min-width: 96px; }
   .top-actions .topbar-btn--add-email { min-width: 100px; }
